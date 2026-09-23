@@ -3,8 +3,11 @@ import { api } from "@/services/api";
 import type { Statistics } from "@/types";
 import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
 import { CheckCircle2, XCircle, Percent, FileQuestion, Users, UserX } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { translateError, translateDifficulty } from "@/i18n/translations";
 
 export function StatisticsPage() {
+  const { t } = useLanguage();
   const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,16 +54,16 @@ export function StatisticsPage() {
   }, [stats]);
 
   if (loading) return <Loading />;
-  if (error) return <ErrorBanner message={error} />;
+  if (error) return <ErrorBanner message={translateError(error, t)} />;
   if (!stats || !derivedStats) return null;
 
   const statCards = [
-    { label: "Total Questions", value: stats.total_questions, icon: FileQuestion, color: "sky" },
-    { label: "Total Interviews", value: stats.total_interviews, icon: Users, color: "indigo" },
-    { label: "Correct Answers", value: stats.correct_answers, icon: CheckCircle2, color: "emerald" },
-    { label: "Incorrect Answers", value: stats.incorrect_answers, icon: XCircle, color: "rose" },
-    { label: "Success Rate", value: `${stats.success_rate}%`, icon: Percent, color: "amber" },
-    { label: "Users w/o Interviews", value: stats.users_without_interviews.length, icon: UserX, color: "slate" },
+    { label: t.statistics.totalQuestions, value: stats.total_questions, icon: FileQuestion, color: "sky" },
+    { label: t.statistics.totalInterviews, value: stats.total_interviews, icon: Users, color: "indigo" },
+    { label: t.statistics.correctAnswers, value: stats.correct_answers, icon: CheckCircle2, color: "emerald" },
+    { label: t.statistics.incorrectAnswers, value: stats.incorrect_answers, icon: XCircle, color: "rose" },
+    { label: t.statistics.successRate, value: `${stats.success_rate}%`, icon: Percent, color: "amber" },
+    { label: t.statistics.usersWithoutInterviews, value: stats.users_without_interviews.length, icon: UserX, color: "slate" },
   ];
 
   const colorMap: Record<string, string> = {
@@ -77,8 +80,8 @@ export function StatisticsPage() {
   return (
     <div>
       <PageHeader
-        title="Statistics"
-        subtitle="Real statistics from the PostgreSQL database (GROUP BY, HAVING, WHERE, JOINs)"
+        title={t.statistics.title}
+        subtitle={t.statistics.subtitle}
       />
 
       {/* Summary cards */}
@@ -100,19 +103,19 @@ export function StatisticsPage() {
       {/* Derived insights */}
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Best Category</p>
+          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">{t.statistics.bestCategory}</p>
           <p className="text-lg font-semibold text-slate-800">{derivedStats.bestCategory.name}</p>
-          <p className="text-sm text-emerald-600">{Math.round(derivedStats.bestCategory.rate)}% correct</p>
+          <p className="text-sm text-emerald-600">{Math.round(derivedStats.bestCategory.rate)}{t.statistics.correctSuffix}</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Hardest Difficulty</p>
-          <p className="text-lg font-semibold text-slate-800 capitalize">{derivedStats.hardestDifficulty.name}</p>
-          <p className="text-sm text-rose-600">{Math.round(derivedStats.hardestDifficulty.rate)}% correct</p>
+          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">{t.statistics.hardestDifficulty}</p>
+          <p className="text-lg font-semibold text-slate-800 capitalize">{translateDifficulty(derivedStats.hardestDifficulty.name, t)}</p>
+          <p className="text-sm text-rose-600">{Math.round(derivedStats.hardestDifficulty.rate)}{t.statistics.correctSuffix}</p>
         </div>
       </div>
 
       {/* Category stats — powered by GROUP BY + HAVING */}
-      <h2 className="font-semibold text-slate-800 mb-3">By Category</h2>
+      <h2 className="font-semibold text-slate-800 mb-3">{t.statistics.byCategory}</h2>
       <div className="bg-white border border-slate-200 rounded-xl p-5 mb-8">
         <div className="space-y-3">
           {stats.by_category.map((cat) => (
@@ -120,7 +123,7 @@ export function StatisticsPage() {
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-slate-700">{cat.category}</span>
                 <span className="text-xs text-slate-400">
-                  {cat.question_count} questions · {cat.correct_count} correct · {cat.incorrect_count} incorrect
+                  {cat.question_count} {t.statistics.questionsLabel} · {cat.correct_count} {t.statistics.correctLabel} · {cat.incorrect_count} {t.statistics.incorrectLabel}
                 </span>
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -132,26 +135,24 @@ export function StatisticsPage() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-slate-400 mt-4 italic">
-          SQL: GROUP BY c.name HAVING COUNT(q.id) &gt;= 1 — only categories with at least 1 question appear.
-        </p>
+        <p className="text-xs text-slate-400 mt-4 italic">{t.statistics.sqlNoteCategory}</p>
       </div>
 
       {/* Difficulty stats — powered by GROUP BY */}
-      <h2 className="font-semibold text-slate-800 mb-3">By Difficulty</h2>
+      <h2 className="font-semibold text-slate-800 mb-3">{t.statistics.byDifficulty}</h2>
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         {stats.by_difficulty.map((d) => {
           const total = d.correct_count + d.incorrect_count;
           const rate = total > 0 ? Math.round((d.correct_count / total) * 100) : 0;
           return (
             <div key={d.difficulty} className="bg-white border border-slate-200 rounded-xl p-5">
-              <p className="text-sm font-semibold text-slate-800 capitalize mb-1">{d.difficulty}</p>
+              <p className="text-sm font-semibold text-slate-800 capitalize mb-1">{translateDifficulty(d.difficulty, t)}</p>
               <p className="text-2xl font-bold text-slate-800">{d.question_count}</p>
-              <p className="text-xs text-slate-400">questions</p>
+              <p className="text-xs text-slate-400">{t.statistics.questionsLabel}</p>
               {total > 0 && (
                 <div className="mt-3 pt-3 border-t border-slate-100">
-                  <p className="text-sm font-medium text-emerald-600">{rate}% correct</p>
-                  <p className="text-xs text-slate-400">{d.correct_count}/{total} answered</p>
+                  <p className="text-sm font-medium text-emerald-600">{rate}{t.statistics.correctSuffix}</p>
+                  <p className="text-xs text-slate-400">{d.correct_count}/{total} {t.statistics.answeredSuffix}</p>
                 </div>
               )}
             </div>
@@ -160,10 +161,10 @@ export function StatisticsPage() {
       </div>
 
       {/* LEFT JOIN demo — users without interviews */}
-      <h2 className="font-semibold text-slate-800 mb-3">Users Without Interviews</h2>
+      <h2 className="font-semibold text-slate-800 mb-3">{t.statistics.usersWithoutInterviewsTitle}</h2>
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         {stats.users_without_interviews.length === 0 ? (
-          <p className="text-sm text-slate-400">All users have at least one interview.</p>
+          <p className="text-sm text-slate-400">{t.statistics.allUsersHaveInterviews}</p>
         ) : (
           <div className="space-y-2">
             {stats.users_without_interviews.map((u) => (
@@ -175,9 +176,7 @@ export function StatisticsPage() {
             ))}
           </div>
         )}
-        <p className="text-xs text-slate-400 mt-4 italic">
-          SQL: LEFT JOIN interviews ON ... WHERE i.id IS NULL — only possible with LEFT JOIN, not INNER JOIN.
-        </p>
+        <p className="text-xs text-slate-400 mt-4 italic">{t.statistics.sqlNoteUsers}</p>
       </div>
     </div>
   );

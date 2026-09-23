@@ -1,13 +1,16 @@
+import { useLanguage } from "@/i18n/LanguageContext";
+
 interface LoadingProps {
   message?: string;
 }
 
-export function Loading({ message = "Loading..." }: LoadingProps) {
+export function Loading({ message }: LoadingProps) {
+  const { t } = useLanguage();
   return (
     <div className="flex items-center justify-center py-20">
       <div className="flex items-center gap-3 text-slate-400">
         <div className="w-5 h-5 border-2 border-slate-300 border-t-sky-500 rounded-full animate-spin" />
-        <span className="text-sm">{message}</span>
+        <span className="text-sm">{message ?? t.common.loading}</span>
       </div>
     </div>
   );

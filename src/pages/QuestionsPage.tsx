@@ -6,8 +6,11 @@ import { QuestionList } from "@/components/QuestionList";
 import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
 import { Plus, Search } from "lucide-react";
 import { useEffect } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { translateError } from "@/i18n/translations";
 
 export function QuestionsPage() {
+  const { t } = useLanguage();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,65 +113,65 @@ export function QuestionsPage() {
   }, [newQuestion]);
 
   if (loading) return <Loading />;
-  if (error) return <ErrorBanner message={error} />;
+  if (error) return <ErrorBanner message={translateError(error, t)} />;
 
   return (
     <div>
       <PageHeader
-        title="Questions"
-        subtitle={`${questions.length} total questions`}
+        title={t.questions.title}
+        subtitle={t.questions.subtitleTotal(questions.length)}
         action={
           <button
             onClick={() => setShowForm((s) => !s)}
             className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            New Question
+            {t.questions.newQuestion}
           </button>
         }
       />
 
       {showForm && (
         <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-          <h3 className="font-semibold text-slate-700 mb-4">Create Question</h3>
+          <h3 className="font-semibold text-slate-700 mb-4">{t.questions.createQuestion}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-600 mb-1">Title</label>
+              <label className="block text-sm font-medium text-slate-600 mb-1">{t.questions.formTitle}</label>
               <input
                 type="text"
                 value={newQuestion.title}
                 onChange={(e) => setNewQuestion((p) => ({ ...p, title: e.target.value }))}
                 className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                placeholder="e.g. Explain the Event Loop"
+                placeholder={t.questions.titlePlaceholder}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Category</label>
+              <label className="block text-sm font-medium text-slate-600 mb-1">{t.questions.formCategory}</label>
               <select
                 value={newQuestion.category_id}
                 onChange={(e) => setNewQuestion((p) => ({ ...p, category_id: e.target.value }))}
                 className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               >
-                <option value="">Select...</option>
+                <option value="">{t.questions.selectPlaceholder}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Difficulty</label>
+              <label className="block text-sm font-medium text-slate-600 mb-1">{t.questions.formDifficulty}</label>
               <select
                 value={newQuestion.difficulty}
                 onChange={(e) => setNewQuestion((p) => ({ ...p, difficulty: e.target.value }))}
                 className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               >
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
+                <option value="easy">{t.common.easy}</option>
+                <option value="medium">{t.common.medium}</option>
+                <option value="hard">{t.common.hard}</option>
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-600 mb-1">Description (optional)</label>
+              <label className="block text-sm font-medium text-slate-600 mb-1">{t.questions.formDescription}</label>
               <textarea
                 value={newQuestion.description}
                 onChange={(e) => setNewQuestion((p) => ({ ...p, description: e.target.value }))}
@@ -183,13 +186,13 @@ export function QuestionsPage() {
               disabled={creating}
               className="text-sm font-medium px-4 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-50 transition-colors"
             >
-              {creating ? "Creating..." : "Create"}
+              {creating ? t.common.creating : t.common.create}
             </button>
             <button
               onClick={() => setShowForm(false)}
               className="text-sm font-medium px-4 py-2 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
             >
-              Cancel
+              {t.common.cancel}
             </button>
           </div>
         </div>
@@ -203,7 +206,7 @@ export function QuestionsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search questions..."
+            placeholder={t.questions.searchPlaceholder}
             className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
           />
         </div>
@@ -212,7 +215,7 @@ export function QuestionsPage() {
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
         >
-          <option value="">All Categories</option>
+          <option value="">{t.questions.allCategories}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.name}>{c.name}</option>
           ))}
@@ -222,26 +225,26 @@ export function QuestionsPage() {
           onChange={(e) => setDifficultyFilter(e.target.value)}
           className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
         >
-          <option value="">All Difficulties</option>
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
+          <option value="">{t.questions.allDifficulties}</option>
+          <option value="easy">{t.common.easy}</option>
+          <option value="medium">{t.common.medium}</option>
+          <option value="hard">{t.common.hard}</option>
         </select>
         <select
           value={sortByKey}
           onChange={(e) => setSortByKey(e.target.value as keyof Question)}
           className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
         >
-          <option value="title">Sort by Title</option>
-          <option value="difficulty">Sort by Difficulty</option>
-          <option value="category_name">Sort by Category</option>
-          <option value="created_at">Sort by Date</option>
+          <option value="title">{t.questions.sortTitle}</option>
+          <option value="difficulty">{t.questions.sortDifficulty}</option>
+          <option value="category_name">{t.questions.sortCategory}</option>
+          <option value="created_at">{t.questions.sortDate}</option>
         </select>
         <button
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="text-sm font-medium px-3 py-2 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
         >
-          {sortDir === "asc" ? "↑ Asc" : "↓ Desc"}
+          {sortDir === "asc" ? t.questions.asc : t.questions.desc}
         </button>
       </div>
 

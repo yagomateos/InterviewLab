@@ -15,6 +15,16 @@ export interface Question {
   description: string | null;
   difficulty: "easy" | "medium" | "hard";
   created_at: string;
+  options?: QuestionOption[];
+}
+
+// A multiple-choice option for a question. Exactly one option per question
+// is marked as correct (enforced in the seed data, not the DB schema).
+export interface QuestionOption {
+  id: number;
+  question_id: number;
+  text: string;
+  is_correct: boolean;
 }
 
 // `typeof` usage: derive a union type from a runtime constant.

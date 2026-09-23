@@ -5,8 +5,11 @@ import type { Interview, Question, Category } from "@/types";
 import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
 import { QuestionList } from "@/components/QuestionList";
 import { ArrowLeft, Plus } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { translateError, translateDifficulty } from "@/i18n/translations";
 
 export function InterviewDetailPage() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const interviewId = Number(id);
 
@@ -117,8 +120,8 @@ export function InterviewDetailPage() {
   };
 
   if (loading) return <Loading />;
-  if (error) return <ErrorBanner message={error} />;
-  if (!interview) return <ErrorBanner message="Interview not found" />;
+  if (error) return <ErrorBanner message={translateError(error, t)} />;
+  if (!interview) return <ErrorBanner message={t.interviewDetail.interviewNotFound} />;
 
   // Map interview questions to the Question shape for QuestionList
   const interviewQuestions: Question[] = (interview.questions ?? []).map((iq) => {
@@ -143,36 +146,36 @@ export function InterviewDetailPage() {
     <div>
       <Link to="/interviews" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 mb-4">
         <ArrowLeft className="w-4 h-4" />
-        Back to Interviews
+        {t.interviewDetail.backToInterviews}
       </Link>
 
       <PageHeader
         title={interview.title}
-        subtitle={`${interview.user_name} · ${interview.questions?.length ?? 0} questions`}
+        subtitle={`${interview.user_name} · ${t.interviews.questionsCount(interview.questions?.length ?? 0)}`}
         action={
           <button
             onClick={() => setShowAdd((s) => !s)}
             className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Question
+            {t.interviewDetail.addQuestion}
           </button>
         }
       />
 
       {showAdd && (
         <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-          <h3 className="font-semibold text-slate-700 mb-3">Add Question to Interview</h3>
+          <h3 className="font-semibold text-slate-700 mb-3">{t.interviewDetail.addQuestionToInterview}</h3>
           <div className="flex gap-2">
             <select
               value={addQuestionId}
               onChange={(e) => setAddQuestionId(e.target.value)}
               className="flex-1 border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
             >
-              <option value="">Select a question...</option>
+              <option value="">{t.interviewDetail.selectQuestion}</option>
               {availableQuestions.map((q) => (
                 <option key={q.id} value={q.id}>
-                  {q.title} ({q.category_name} · {q.difficulty})
+                  {q.title} ({q.category_name} · {translateDifficulty(q.difficulty, t)})
                 </option>
               ))}
             </select>
@@ -181,11 +184,11 @@ export function InterviewDetailPage() {
               disabled={!addQuestionId}
               className="text-sm font-medium px-4 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-50 transition-colors"
             >
-              Add
+              {t.common.add}
             </button>
           </div>
           {availableQuestions.length === 0 && (
-            <p className="text-sm text-slate-400 mt-2">All questions are already in this interview.</p>
+            <p className="text-sm text-slate-400 mt-2">{t.interviewDetail.allAlreadyAdded}</p>
           )}
         </div>
       )}

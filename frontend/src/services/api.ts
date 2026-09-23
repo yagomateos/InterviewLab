@@ -6,6 +6,7 @@ import type {
   DashboardData,
   AsyncDemoResult,
   ExternalDashboardData,
+  User,
 } from "@/types";
 import {
   mockStore,
@@ -16,6 +17,9 @@ import {
   mockAsyncDemo,
   mockExternalDashboard,
 } from "./mockData";
+import { getToken, setToken } from "./authToken";
+
+export { getToken, setToken };
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
@@ -23,15 +27,44 @@ const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 // we skip network attempts and use mock data directly.
 let backendAvailable: boolean | null = null;
 
+// Thrown for a real response from the backend (4xx/5xx) — as opposed to a
+// network failure, which withFallback treats as "backend unreachable" and
+// silently degrades to mock data instead. A 401, for instance, means the
+// backend IS there and is telling us the session is invalid; that should
+// surface to the UI (so it can log the user out), never be masked by mock
+// data quietly standing in.
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
+
+// Called whenever the backend rejects a request as unauthorized. AuthContext
+// registers a handler here on mount so an expired/invalid token clears
+// itself out of storage and the UI drops back to a logged-out state,
+// without every call site having to check for 401 individually.
+let unauthorizedHandler: (() => void) | null = null;
+export function onUnauthorized(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
   });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(body.message || `HTTP ${res.status}`);
+    if (res.status === 401) unauthorizedHandler?.();
+    throw new ApiError(res.status, body.message || `HTTP ${res.status}`);
   }
 
   if (res.status === 204) return undefined as T;
@@ -41,6 +74,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 // Try the real backend; if it fails for any reason (network error, CORS,
 // mixed content, connection refused), mark it unavailable and fall back
 // to mock data so the UI still works in preview/deployed mode without Docker.
+// A real ApiError (the backend responded, just with an error) is NOT a
+// reachability problem — it's re-thrown as-is instead of being masked.
 async function withFallback<T>(apiCall: () => Promise<T>, mockFn: () => T | Promise<T>): Promise<T> {
   if (backendAvailable === false) {
     return mockFn();
@@ -50,8 +85,10 @@ async function withFallback<T>(apiCall: () => Promise<T>, mockFn: () => T | Prom
     backendAvailable = true;
     return result;
   } catch (err) {
-    // Any fetch failure (network unreachable, CORS, mixed content, etc.)
-    // means the backend isn't available — use mock data instead.
+    if (err instanceof ApiError) {
+      backendAvailable = true;
+      throw err;
+    }
     backendAvailable = false;
     return mockFn();
   }
@@ -62,6 +99,42 @@ function delay(ms: number = 100): Promise<void> {
 }
 
 export const api = {
+  // Auth
+  auth: {
+    register: (data: { name: string; email: string; password: string }) =>
+      withFallback(
+        () => request<{ user: User; token: string }>("/auth/register", {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+        async () => {
+          await delay(200);
+          return mockStore.registerUser(data);
+        }
+      ),
+
+    login: (data: { email: string; password: string }) =>
+      withFallback(
+        () => request<{ user: User; token: string }>("/auth/login", {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+        async () => {
+          await delay(200);
+          return mockStore.loginUser(data);
+        }
+      ),
+
+    me: () =>
+      withFallback(
+        () => request<User>("/auth/me"),
+        async () => {
+          await delay(100);
+          return mockStore.currentMockUser();
+        }
+      ),
+  },
+
   // Questions
   getQuestions: (filters?: { category?: string; difficulty?: string; search?: string }) =>
     withFallback(
@@ -176,13 +249,16 @@ export const api = {
       }
     ),
 
-  // Interviews
+  // Interviews — every endpoint requires an authenticated user and is
+  // scoped to their own interviews, both against the real backend and in
+  // the local mock fallback (see mockStore.requireMockUser below).
   getInterviews: () =>
     withFallback(
       () => request<Interview[]>("/interviews"),
       async () => {
         await delay(150);
-        return [...mockStore.interviews];
+        const userId = mockStore.requireMockUser().id;
+        return mockStore.interviews.filter((i) => i.user_id === userId);
       }
     ),
 
@@ -191,22 +267,23 @@ export const api = {
       () => request<Interview>(`/interviews/${id}`),
       async () => {
         await delay(150);
-        const interview = mockStore.interviews.find((i) => i.id === id);
+        const userId = mockStore.requireMockUser().id;
+        const interview = mockStore.interviews.find((i) => i.id === id && i.user_id === userId);
         if (!interview) throw new Error("Interview not found");
         return interview;
       }
     ),
 
-  createInterview: (data: { user_id: number; title: string }) =>
+  createInterview: (data: { title: string }) =>
     withFallback(
       () => request<Interview>("/interviews", { method: "POST", body: JSON.stringify(data) }),
       async () => {
         await delay(200);
-        const userName = data.user_id === 1 ? "Alice Johnson" : data.user_id === 2 ? "Bob Smith" : "Carol Davis";
+        const user = mockStore.requireMockUser();
         const newInterview: Interview = {
           id: mockStore.nextInterviewId(),
-          user_id: data.user_id,
-          user_name: userName,
+          user_id: user.id,
+          user_name: user.name,
           title: data.title,
           status: "scheduled",
           created_at: new Date().toISOString(),
@@ -227,7 +304,8 @@ export const api = {
         }),
       async () => {
         await delay(150);
-        const interview = mockStore.interviews.find((i) => i.id === interviewId);
+        const userId = mockStore.requireMockUser().id;
+        const interview = mockStore.interviews.find((i) => i.id === interviewId && i.user_id === userId);
         const question = mockStore.questions.find((q) => q.id === questionId);
         if (!interview || !question) throw new Error("Interview or question not found");
         if (interview.questions?.some((iq) => iq.question_id === questionId)) {
@@ -254,7 +332,8 @@ export const api = {
       () => request<void>(`/interviews/${interviewId}/questions/${questionId}`, { method: "DELETE" }),
       async () => {
         await delay(150);
-        const interview = mockStore.interviews.find((i) => i.id === interviewId);
+        const userId = mockStore.requireMockUser().id;
+        const interview = mockStore.interviews.find((i) => i.id === interviewId && i.user_id === userId);
         if (!interview) throw new Error("Interview not found");
         interview.questions = interview.questions?.filter((iq) => iq.question_id !== questionId) ?? [];
         interview.question_count = interview.questions.length;
@@ -271,7 +350,8 @@ export const api = {
         }),
       async () => {
         await delay(150);
-        const interview = mockStore.interviews.find((i) => i.id === interviewId);
+        const userId = mockStore.requireMockUser().id;
+        const interview = mockStore.interviews.find((i) => i.id === interviewId && i.user_id === userId);
         if (!interview) throw new Error("Interview not found");
         const iq = interview.questions?.find((q) => q.question_id === questionId);
         if (!iq) throw new Error("Question not in interview");
@@ -319,6 +399,4 @@ export const api = {
       }
     ),
 
-  // Check if using mock data (for UI indicator)
-  isUsingMockData: () => backendAvailable === false,
 };

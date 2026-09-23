@@ -2,7 +2,8 @@ import { query } from "../config/db.js";
 import type { Interview, InterviewQuestion, Answer } from "../types/index.js";
 
 export const interviewRepository = {
-  async findAll(): Promise<Interview[]> {
+  // Scoped to one user — each account only ever sees its own interviews.
+  async findAllByUser(userId: number): Promise<Interview[]> {
     // INNER JOIN — only interviews that have a matching user appear.
     // LEFT JOIN on interview_questions + COUNT gives us question_count,
     // including interviews with zero questions (LEFT JOIN preserves them).
@@ -13,10 +14,11 @@ export const interviewRepository = {
       FROM interviews i
       INNER JOIN users u ON i.user_id = u.id
       LEFT JOIN interview_questions iq ON iq.interview_id = i.id
+      WHERE i.user_id = $1
       GROUP BY i.id, u.name
       ORDER BY i.created_at DESC
     `;
-    const rows = (await query<Interview>(sql)).rows;
+    const rows = (await query<Interview>(sql, [userId])).rows;
     return rows.map((r) => ({
       ...r,
       question_count: Number(r.question_count),

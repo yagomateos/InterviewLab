@@ -7,6 +7,13 @@ export interface Category {
   name: string;
 }
 
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string;
+}
+
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 // `typeof` — derive a type from the runtime constant above.
@@ -21,6 +28,16 @@ export interface Question {
   description: string | null;
   difficulty: Difficulty;
   created_at: string;
+  options?: QuestionOption[];
+}
+
+// A multiple-choice option for a question. Exactly one option per question
+// is marked as correct.
+export interface QuestionOption {
+  id: number;
+  question_id: number;
+  text: string;
+  is_correct: boolean;
 }
 
 export interface Interview {

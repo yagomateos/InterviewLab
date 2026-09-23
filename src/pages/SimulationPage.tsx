@@ -2,9 +2,12 @@ import { useState, useCallback, useEffect } from "react";
 import { api } from "@/services/api";
 import type { Question, Category } from "@/types";
 import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
-import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Circle } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { translateError } from "@/i18n/translations";
 
 export function SimulationPage() {
+  const { t } = useLanguage();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,10 @@ export function SimulationPage() {
   const [wrongCount, setWrongCount] = useState(0);
   const [answered, setAnswered] = useState<Set<number>>(new Set());
   const [finished, setFinished] = useState(false);
+
+  // Which option the user picked for each answered question, keyed by
+  // question id — used to grade the checklist and highlight the choice.
+  const [selections, setSelections] = useState<Record<number, number>>({});
 
   useEffect(() => {
     Promise.all([api.getQuestions(), api.getCategories()])
@@ -50,6 +57,7 @@ export function SimulationPage() {
     setScore(0);
     setWrongCount(0);
     setAnswered(new Set());
+    setSelections({});
     setFinished(false);
   };
 
@@ -59,6 +67,7 @@ export function SimulationPage() {
     setScore(0);
     setWrongCount(0);
     setAnswered(new Set());
+    setSelections({});
     setFinished(false);
   };
 
@@ -84,66 +93,64 @@ export function SimulationPage() {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   }, []);
 
-  const markCorrect = useCallback(() => {
-    const questionId = simQuestions[currentIndex]?.id;
-    if (questionId === undefined || answered.has(questionId)) return;
+  // selectOption — the checklist replaces the old manual "I got it right /
+  // wrong" buttons: picking one of the 3 options grades itself against
+  // option.is_correct, so score/wrongCount always derive from a real answer.
+  const selectOption = useCallback(
+    (optionId: number, isCorrect: boolean) => {
+      const questionId = simQuestions[currentIndex]?.id;
+      if (questionId === undefined || answered.has(questionId)) return;
 
-    // setScore(prev => prev + 1) — the new score depends on the previous score.
-    // Using the functional updater guarantees we always add 1 to the LATEST
-    // value, even if multiple state updates are batched in the same tick.
-    // If we wrote setScore(score + 1), the `score` variable would be the
-    // value from the current render — if markCorrect is called twice quickly
-    // (e.g. via keyboard), both calls would use the same stale `score` and
-    // the increment would only happen once instead of twice.
-    setScore((prev) => prev + 1);
-    setAnswered((prev) => new Set(prev).add(questionId));
-  }, [simQuestions, currentIndex, answered]);
-
-  const markIncorrect = useCallback(() => {
-    const questionId = simQuestions[currentIndex]?.id;
-    if (questionId === undefined || answered.has(questionId)) return;
-
-    setWrongCount((prev) => prev + 1);
-    setAnswered((prev) => new Set(prev).add(questionId));
-  }, [simQuestions, currentIndex, answered]);
+      // setState(prev => ...) — see nextQuestion above for why the functional
+      // form is required here too.
+      if (isCorrect) {
+        setScore((prev) => prev + 1);
+      } else {
+        setWrongCount((prev) => prev + 1);
+      }
+      setSelections((prev) => ({ ...prev, [questionId]: optionId }));
+      setAnswered((prev) => new Set(prev).add(questionId));
+    },
+    [simQuestions, currentIndex, answered]
+  );
 
   if (loading) return <Loading />;
-  if (error) return <ErrorBanner message={error} />;
+  if (error) return <ErrorBanner message={translateError(error, t)} />;
 
   // --- Setup screen ---
   if (!started) {
     return (
       <div>
-        <PageHeader title="Interview Simulation" subtitle="Practice with a timed mock interview" />
+        <PageHeader title={t.simulation.title} subtitle={t.simulation.subtitle} />
         <div className="max-w-md mx-auto bg-white border border-slate-200 rounded-xl p-6 mt-8">
-          <h2 className="font-semibold text-slate-800 mb-4">Configure your simulation</h2>
+          <h2 className="font-semibold text-slate-800 mb-4">{t.simulation.configureTitle}</h2>
 
-          <label className="block text-sm font-medium text-slate-600 mb-1">Category (optional)</label>
+          <label className="block text-sm font-medium text-slate-600 mb-1">{t.simulation.categoryOptional}</label>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-sky-400"
           >
-            <option value="">All Categories</option>
+            <option value="">{t.simulation.allCategories}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
 
-          <label className="block text-sm font-medium text-slate-600 mb-1">Difficulty (optional)</label>
+          <label className="block text-sm font-medium text-slate-600 mb-1">{t.simulation.difficultyOptional}</label>
           <select
             value={difficultyFilter}
             onChange={(e) => setDifficultyFilter(e.target.value)}
             className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-sky-400"
           >
-            <option value="">All Difficulties</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
+            <option value="">{t.simulation.allDifficulties}</option>
+            <option value="easy">{t.common.easy}</option>
+            <option value="medium">{t.common.medium}</option>
+            <option value="hard">{t.common.hard}</option>
           </select>
 
           <p className="text-sm text-slate-500 mb-4">
-            {simQuestions.length} questions will be included in this simulation.
+            {t.simulation.questionsIncluded(simQuestions.length)}
           </p>
 
           <button
@@ -151,7 +158,7 @@ export function SimulationPage() {
             disabled={simQuestions.length === 0}
             className="w-full text-sm font-medium px-4 py-2.5 rounded-md bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-50 transition-colors"
           >
-            Start Simulation
+            {t.simulation.start}
           </button>
         </div>
       </div>
@@ -164,26 +171,26 @@ export function SimulationPage() {
     const rate = total > 0 ? Math.round((score / total) * 100) : 0;
     return (
       <div>
-        <PageHeader title="Simulation Results" />
+        <PageHeader title={t.simulation.resultsTitle} />
         <div className="max-w-md mx-auto bg-white border border-slate-200 rounded-xl p-8 mt-8 text-center">
           <div className="w-16 h-16 mx-auto rounded-full bg-amber-50 flex items-center justify-center mb-4">
             <Trophy className="w-8 h-8 text-amber-500" />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-1">{rate}%</h2>
-          <p className="text-sm text-slate-500 mb-6">Success Rate</p>
+          <p className="text-sm text-slate-500 mb-6">{t.simulation.successRate}</p>
 
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div>
               <p className="text-2xl font-bold text-slate-800">{total}</p>
-              <p className="text-xs text-slate-400">Total</p>
+              <p className="text-xs text-slate-400">{t.simulation.total}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-emerald-600">{score}</p>
-              <p className="text-xs text-slate-400">Correct</p>
+              <p className="text-xs text-slate-400">{t.simulation.correct}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-rose-600">{wrongCount}</p>
-              <p className="text-xs text-slate-400">Incorrect</p>
+              <p className="text-xs text-slate-400">{t.simulation.incorrect}</p>
             </div>
           </div>
 
@@ -192,7 +199,7 @@ export function SimulationPage() {
             className="flex items-center gap-2 mx-auto text-sm font-medium px-4 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
-            New Simulation
+            {t.simulation.newSimulation}
           </button>
         </div>
       </div>
@@ -206,10 +213,10 @@ export function SimulationPage() {
   if (!currentQuestion) {
     return (
       <div>
-        <PageHeader title="Interview Simulation" />
-        <ErrorBanner message="No questions match your filters." />
+        <PageHeader title={t.simulation.title} />
+        <ErrorBanner message={t.simulation.noMatch} />
         <button onClick={resetSimulation} className="mt-4 text-sm font-medium px-4 py-2 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200">
-          Back
+          {t.simulation.back}
         </button>
       </div>
     );
@@ -218,8 +225,8 @@ export function SimulationPage() {
   return (
     <div>
       <PageHeader
-        title="Interview Simulation"
-        subtitle={`Question ${currentIndex + 1} of ${simQuestions.length}`}
+        title={t.simulation.title}
+        subtitle={t.simulation.questionOf(currentIndex + 1, simQuestions.length)}
       />
 
       {/* Progress bar */}
@@ -235,12 +242,12 @@ export function SimulationPage() {
         <div className="flex items-center gap-1.5 text-sm">
           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           <span className="font-medium text-slate-700">{score}</span>
-          <span className="text-slate-400">correct</span>
+          <span className="text-slate-400">{t.simulation.correctWord}</span>
         </div>
         <div className="flex items-center gap-1.5 text-sm">
           <XCircle className="w-4 h-4 text-rose-500" />
           <span className="font-medium text-slate-700">{wrongCount}</span>
-          <span className="text-slate-400">incorrect</span>
+          <span className="text-slate-400">{t.simulation.incorrectWord}</span>
         </div>
       </div>
 
@@ -259,16 +266,69 @@ export function SimulationPage() {
               ? "bg-amber-100 text-amber-700"
               : "bg-rose-100 text-rose-700"
           }`}>
-            {currentQuestion.difficulty}
+            {t.common[currentQuestion.difficulty]}
           </span>
         </div>
         <h2 className="text-lg font-semibold text-slate-800 mb-3">{currentQuestion.title}</h2>
         {currentQuestion.description && (
-          <p className="text-sm text-slate-600 leading-relaxed">{currentQuestion.description}</p>
+          <p className="text-sm text-slate-600 leading-relaxed mb-5">{currentQuestion.description}</p>
+        )}
+
+        {/* Multiple-choice checklist — pick the correct answer out of the
+            options for this question. Selecting one grades itself: no
+            separate "I got it right / wrong" step needed. */}
+        {currentQuestion.options && currentQuestion.options.length > 0 && (
+          <div className="space-y-2">
+            {currentQuestion.options.map((option) => {
+              const isSelected = selections[currentQuestion.id] === option.id;
+              const showFeedback = isAnswered;
+
+              let stateClasses = "border-slate-200 hover:border-slate-300 hover:bg-slate-50";
+              if (showFeedback && option.is_correct) {
+                stateClasses = "border-emerald-300 bg-emerald-50";
+              } else if (showFeedback && isSelected && !option.is_correct) {
+                stateClasses = "border-rose-300 bg-rose-50";
+              } else if (showFeedback) {
+                stateClasses = "border-slate-200 opacity-60";
+              }
+
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => selectOption(option.id, option.is_correct)}
+                  disabled={isAnswered}
+                  className={`w-full flex items-start gap-3 text-left text-sm px-4 py-3 rounded-lg border transition-colors disabled:cursor-default ${stateClasses}`}
+                >
+                  {showFeedback ? (
+                    option.is_correct ? (
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" />
+                    ) : isSelected ? (
+                      <XCircle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600" />
+                    ) : (
+                      <Circle className="w-4 h-4 mt-0.5 shrink-0 text-slate-300" />
+                    )
+                  ) : (
+                    <Circle className="w-4 h-4 mt-0.5 shrink-0 text-slate-300" />
+                  )}
+                  <span
+                    className={
+                      showFeedback && option.is_correct
+                        ? "text-emerald-800"
+                        : showFeedback && isSelected
+                        ? "text-rose-800"
+                        : "text-slate-700"
+                    }
+                  >
+                    {option.text}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* Action buttons */}
+      {/* Navigation */}
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={prevQuestion}
@@ -276,41 +336,15 @@ export function SimulationPage() {
           className="flex items-center gap-1 text-sm font-medium px-4 py-2 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-40 transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          Previous
+          {t.simulation.previous}
         </button>
-
-        <div className="flex gap-2">
-          <button
-            onClick={markCorrect}
-            disabled={isAnswered}
-            className={`flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md transition-colors ${
-              isAnswered
-                ? "bg-slate-100 text-slate-400"
-                : "bg-emerald-500 text-white hover:bg-emerald-600"
-            }`}
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            I got it right
-          </button>
-          <button
-            onClick={markIncorrect}
-            disabled={isAnswered}
-            className={`flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md transition-colors ${
-              isAnswered
-                ? "bg-slate-100 text-slate-400"
-                : "bg-rose-500 text-white hover:bg-rose-600"
-            }`}
-          >
-            <XCircle className="w-4 h-4" />
-            I got it wrong
-          </button>
-        </div>
 
         <button
           onClick={nextQuestion}
-          className="flex items-center gap-1 text-sm font-medium px-4 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 transition-colors"
+          disabled={!isAnswered}
+          className="flex items-center gap-1 text-sm font-medium px-4 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-40 transition-colors"
         >
-          {currentIndex === simQuestions.length - 1 ? "Finish" : "Next"}
+          {currentIndex === simQuestions.length - 1 ? t.simulation.finish : t.simulation.next}
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

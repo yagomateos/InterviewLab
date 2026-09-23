@@ -12,7 +12,15 @@ export const questionRepository = {
   }): Promise<Question[]> {
     let sql = `
       SELECT q.id, q.category_id, c.name AS category_name,
-             q.title, q.description, q.difficulty, q.created_at
+             q.title, q.description, q.difficulty, q.created_at,
+             COALESCE(
+               (SELECT json_agg(json_build_object(
+                  'id', o.id, 'question_id', o.question_id,
+                  'text', o.text, 'is_correct', o.is_correct
+                ) ORDER BY o.id)
+                FROM question_options o WHERE o.question_id = q.id),
+               '[]'
+             ) AS options
       FROM questions q
       INNER JOIN categories c ON q.category_id = c.id
     `;
@@ -44,7 +52,15 @@ export const questionRepository = {
   async findById(id: number): Promise<Question | null> {
     const sql = `
       SELECT q.id, q.category_id, c.name AS category_name,
-             q.title, q.description, q.difficulty, q.created_at
+             q.title, q.description, q.difficulty, q.created_at,
+             COALESCE(
+               (SELECT json_agg(json_build_object(
+                  'id', o.id, 'question_id', o.question_id,
+                  'text', o.text, 'is_correct', o.is_correct
+                ) ORDER BY o.id)
+                FROM question_options o WHERE o.question_id = q.id),
+               '[]'
+             ) AS options
       FROM questions q
       INNER JOIN categories c ON q.category_id = c.id
       WHERE q.id = $1

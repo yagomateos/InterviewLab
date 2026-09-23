@@ -46,16 +46,16 @@ export const statisticsRepository = {
   async getCategoryStats(minQuestions: number = 1): Promise<CategoryStat[]> {
     const sql = `
       SELECT c.name AS category,
-             COUNT(q.id) AS question_count,
-             COUNT(a.id) FILTER (WHERE a.is_correct = true)  AS correct_count,
-             COUNT(a.id) FILTER (WHERE a.is_correct = false) AS incorrect_count
+             COUNT(DISTINCT q.id) AS question_count,
+             COUNT(DISTINCT a.id) FILTER (WHERE a.is_correct = true)  AS correct_count,
+             COUNT(DISTINCT a.id) FILTER (WHERE a.is_correct = false) AS incorrect_count
       FROM categories c
       INNER JOIN questions q          ON q.category_id = c.id
       LEFT  JOIN interview_questions iq ON iq.question_id = q.id
       LEFT  JOIN answers a            ON a.interview_question_id = iq.id
       WHERE q.difficulty IS NOT NULL
       GROUP BY c.name
-      HAVING COUNT(q.id) >= $1
+      HAVING COUNT(DISTINCT q.id) >= $1
       ORDER BY question_count DESC
     `;
     const rows = (await query<{
@@ -77,14 +77,14 @@ export const statisticsRepository = {
   async getDifficultyStats(): Promise<DifficultyStat[]> {
     const sql = `
       SELECT q.difficulty,
-             COUNT(q.id) AS question_count,
-             COUNT(a.id) FILTER (WHERE a.is_correct = true)  AS correct_count,
-             COUNT(a.id) FILTER (WHERE a.is_correct = false) AS incorrect_count
+             COUNT(DISTINCT q.id) AS question_count,
+             COUNT(DISTINCT a.id) FILTER (WHERE a.is_correct = true)  AS correct_count,
+             COUNT(DISTINCT a.id) FILTER (WHERE a.is_correct = false) AS incorrect_count
       FROM questions q
       LEFT  JOIN interview_questions iq ON iq.question_id = q.id
       LEFT  JOIN answers a            ON a.interview_question_id = iq.id
       GROUP BY q.difficulty
-      HAVING COUNT(q.id) > 0
+      HAVING COUNT(DISTINCT q.id) > 0
       ORDER BY
         CASE q.difficulty
           WHEN 'easy' THEN 1

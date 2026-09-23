@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { Question } from "@/types";
 import { QuestionCard } from "./QuestionCard";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface QuestionListProps {
   questions: Question[];
@@ -19,6 +20,7 @@ export function QuestionList({
   onRemove,
   answerMap,
 }: QuestionListProps) {
+  const { t } = useLanguage();
   // useCallback is NOT used here for these callbacks because they are already
   // stabilized by the parent component. This demonstrates that useCallback should
   // be used at the appropriate level — not blindly everywhere. The parent owns
@@ -39,7 +41,7 @@ export function QuestionList({
   if (questions.length === 0) {
     return (
       <div className="text-center py-12 text-slate-400">
-        <p className="text-sm">No questions found.</p>
+        <p className="text-sm">{t.common.noQuestionsFound}</p>
       </div>
     );
   }

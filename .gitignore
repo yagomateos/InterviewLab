@@ -21,3 +21,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.vercel
+.env*
+
+# Local Claude Code / agent-skill tooling caches (not project source)
+.agents
+.claude
+skills-lock.json
