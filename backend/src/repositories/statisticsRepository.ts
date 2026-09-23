@@ -121,23 +121,33 @@ export const statisticsRepository = {
   },
 
   async getRecentActivity(limit: number = 10): Promise<
-    { type: string; description: string; created_at: string }[]
+    { type: string; description: string; title: string; title_es: string | null; created_at: string }[]
   > {
+    // description keeps the English "New question: <title>" form for
+    // backward compatibility; title/title_es let the frontend rebuild a
+    // localized version instead (see DashboardPage's formatActivity).
     const sql = `
       SELECT 'question' AS type,
              'New question: ' || title AS description,
+             title, title_es,
              created_at
       FROM questions
       ORDER BY created_at DESC
       LIMIT $1
     `;
-    return (await query<{ type: string; description: string; created_at: string }>(sql, [limit])).rows;
+    return (
+      await query<{ type: string; description: string; title: string; title_es: string | null; created_at: string }>(
+        sql,
+        [limit]
+      )
+    ).rows;
   },
 
   async getRecentQuestions(limit: number = 5): Promise<Question[]> {
     const sql = `
       SELECT q.id, q.category_id, c.name AS category_name,
-             q.title, q.description, q.difficulty, q.created_at
+             q.title, q.description, q.title_es, q.description_es,
+             q.difficulty, q.created_at
       FROM questions q
       INNER JOIN categories c ON q.category_id = c.id
       ORDER BY q.created_at DESC

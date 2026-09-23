@@ -35,7 +35,7 @@ export const statisticsService = {
   },
 
   async getRecentActivity(limit: number = 10): Promise<
-    { type: string; description: string; created_at: string }[]
+    { type: string; description: string; title: string; title_es: string | null; created_at: string }[]
   > {
     return statisticsRepository.getRecentActivity(limit);
   },

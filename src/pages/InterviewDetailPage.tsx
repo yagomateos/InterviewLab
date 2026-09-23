@@ -7,9 +7,10 @@ import { QuestionList } from "@/components/QuestionList";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { translateError, translateDifficulty } from "@/i18n/translations";
+import { localizeQuestionTitle } from "@/i18n/localize";
 
 export function InterviewDetailPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const interviewId = Number(id);
 
@@ -131,7 +132,9 @@ export function InterviewDetailPage() {
       category_id: full?.category_id ?? 0,
       category_name: iq.category_name ?? full?.category_name,
       title: iq.title ?? full?.title ?? "",
+      title_es: iq.title_es ?? full?.title_es ?? null,
       description: full?.description ?? null,
+      description_es: full?.description_es ?? null,
       difficulty: iq.difficulty ?? full?.difficulty ?? "medium",
       created_at: full?.created_at ?? "",
     };
@@ -175,7 +178,7 @@ export function InterviewDetailPage() {
               <option value="">{t.interviewDetail.selectQuestion}</option>
               {availableQuestions.map((q) => (
                 <option key={q.id} value={q.id}>
-                  {q.title} ({q.category_name} · {translateDifficulty(q.difficulty, t)})
+                  {localizeQuestionTitle(q, language)} ({q.category_name} · {translateDifficulty(q.difficulty, t)})
                 </option>
               ))}
             </select>

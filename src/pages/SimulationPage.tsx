@@ -5,9 +5,10 @@ import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Circle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { translateError } from "@/i18n/translations";
+import { localizeQuestionTitle, localizeQuestionDescription, localizeOptionText } from "@/i18n/localize";
 
 export function SimulationPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,9 +270,9 @@ export function SimulationPage() {
             {t.common[currentQuestion.difficulty]}
           </span>
         </div>
-        <h2 className="text-lg font-semibold text-slate-800 mb-3">{currentQuestion.title}</h2>
+        <h2 className="text-lg font-semibold text-slate-800 mb-3">{localizeQuestionTitle(currentQuestion, language)}</h2>
         {currentQuestion.description && (
-          <p className="text-sm text-slate-600 leading-relaxed mb-5">{currentQuestion.description}</p>
+          <p className="text-sm text-slate-600 leading-relaxed mb-5">{localizeQuestionDescription(currentQuestion, language)}</p>
         )}
 
         {/* Multiple-choice checklist — pick the correct answer out of the
@@ -319,7 +320,7 @@ export function SimulationPage() {
                         : "text-slate-700"
                     }
                   >
-                    {option.text}
+                    {localizeOptionText(option, language)}
                   </span>
                 </button>
               );

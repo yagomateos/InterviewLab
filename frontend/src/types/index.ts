@@ -26,6 +26,10 @@ export interface Question {
   category_name?: string;
   title: string;
   description: string | null;
+  // Spanish translations — nullable; the UI falls back to the English
+  // fields above when these aren't set. See src/i18n/localize.ts.
+  title_es?: string | null;
+  description_es?: string | null;
   difficulty: Difficulty;
   created_at: string;
   options?: QuestionOption[];
@@ -37,6 +41,7 @@ export interface QuestionOption {
   id: number;
   question_id: number;
   text: string;
+  text_es?: string | null;
   is_correct: boolean;
 }
 
@@ -57,6 +62,7 @@ export interface InterviewQuestion {
   question_id: number;
   order: number;
   title?: string;
+  title_es?: string | null;
   category_name?: string;
   difficulty?: Difficulty;
   is_correct?: boolean | null;
@@ -92,7 +98,7 @@ export interface DashboardData {
   stats: Statistics;
   recentQuestions: Question[];
   categories: Category[];
-  recentActivity: { type: string; description: string; created_at: string }[];
+  recentActivity: { type: string; description: string; title: string; title_es: string | null; created_at: string }[];
 }
 
 export interface AsyncDemoResult {

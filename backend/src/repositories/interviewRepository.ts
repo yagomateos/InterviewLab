@@ -60,7 +60,7 @@ export const interviewRepository = {
   async getQuestions(interviewId: number): Promise<InterviewQuestion[]> {
     const sql = `
       SELECT iq.id, iq.interview_id, iq.question_id, iq."order",
-             q.title, c.name AS category_name, q.difficulty,
+             q.title, q.title_es, c.name AS category_name, q.difficulty,
              a.is_correct
       FROM interview_questions iq
       INNER JOIN questions q  ON iq.question_id = q.id

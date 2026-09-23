@@ -4,20 +4,26 @@ import type { DashboardData } from "@/types";
 import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
 import { FileQuestion, Users, CheckCircle2, TrendingUp, Clock } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { translateError, translateDifficulty } from "@/i18n/translations";
+import { translateError, translateDifficulty, type Language } from "@/i18n/translations";
+import { localizeQuestionTitle } from "@/i18n/localize";
 
-// The backend always returns recent-activity descriptions in the fixed
-// English form "New question: <title>" (see statisticsRepository.ts). Only
-// the prefix is translated here; the title itself is data and stays as-is.
-const ACTIVITY_PREFIX = "New question: ";
-function formatActivity(description: string, newQuestionPrefix: string): string {
-  return description.startsWith(ACTIVITY_PREFIX)
-    ? `${newQuestionPrefix} ${description.slice(ACTIVITY_PREFIX.length)}`
-    : description;
+// The backend returns a fixed English "description" ("New question: <title>")
+// for backward compatibility, plus the raw title/title_es so we can rebuild
+// a fully localized version here instead of just translating the prefix.
+function formatActivity(
+  activity: { description: string; title: string; title_es: string | null },
+  newQuestionPrefix: string,
+  language: Language
+): string {
+  const title = localizeQuestionTitle(
+    { title: activity.title, title_es: activity.title_es },
+    language
+  );
+  return `${newQuestionPrefix} ${title}`;
 }
 
 export function DashboardPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +84,7 @@ export function DashboardPage() {
             {recentQuestions.map((q) => (
               <div key={q.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-700 truncate">{q.title}</p>
+                  <p className="text-sm font-medium text-slate-700 truncate">{localizeQuestionTitle(q, language)}</p>
                   <p className="text-xs text-slate-400">{q.category_name} · {translateDifficulty(q.difficulty, t)}</p>
                 </div>
               </div>
@@ -101,7 +107,7 @@ export function DashboardPage() {
             {recentActivity.slice(0, 5).map((a, i) => (
               <div key={i} className="flex items-start gap-2 text-sm text-slate-600">
                 <Clock className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                <span className="truncate">{formatActivity(a.description, t.dashboard.newQuestionPrefix)}</span>
+                <span className="truncate">{formatActivity(a, t.dashboard.newQuestionPrefix, language)}</span>
               </div>
             ))}
           </div>

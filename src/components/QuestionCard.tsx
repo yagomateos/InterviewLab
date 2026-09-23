@@ -2,6 +2,7 @@ import { memo } from "react";
 import type { Question } from "@/types";
 import { CheckCircle2, XCircle, Circle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { localizeQuestionTitle, localizeQuestionDescription } from "@/i18n/localize";
 
 interface QuestionCardProps {
   question: Question;
@@ -32,7 +33,7 @@ function QuestionCardBase({
   onMarkIncorrect,
   onRemove,
 }: QuestionCardProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <div className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
       <div className="flex items-start justify-between gap-3">
@@ -57,11 +58,11 @@ function QuestionCardBase({
             )}
           </div>
           <h3 className="font-medium text-slate-800 text-sm leading-snug">
-            {question.title}
+            {localizeQuestionTitle(question, language)}
           </h3>
           {question.description && (
             <p className="text-sm text-slate-500 mt-1 line-clamp-2">
-              {question.description}
+              {localizeQuestionDescription(question, language)}
             </p>
           )}
         </div>
