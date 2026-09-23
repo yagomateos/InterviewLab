@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: interviewlab-postgres
+    environment:
+      POSTGRES_USER: interviewlab
+      POSTGRES_PASSWORD: interviewlab_pass
+      POSTGRES_DB: interviewlab
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - interviewlab-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U interviewlab"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: interviewlab-backend
+    environment:
+      PORT: 4000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: interviewlab
+      DB_PASSWORD: interviewlab_pass
+      DB_NAME: interviewlab
+      CORS_ORIGIN: "http://localhost:5173"
+      NODE_ENV: production
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - interviewlab-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: interviewlab-frontend
+    environment:
+      VITE_API_URL: "http://localhost:4000/api"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - interviewlab-net
+
+volumes:
+  postgres_data:
+
+networks:
+  interviewlab-net:
+    driver: bridge
