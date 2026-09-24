@@ -2,11 +2,15 @@ import { memo } from "react";
 import type { Question } from "@/types";
 import { CheckCircle2, XCircle, Circle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { localizeQuestionTitle, localizeQuestionDescription } from "@/i18n/localize";
+import { localizeQuestionTitle, localizeQuestionDescription, localizeOptionText } from "@/i18n/localize";
 
 interface QuestionCardProps {
   question: Question;
   isCorrect?: boolean | null;
+  // The text of the option the user actually picked in the simulation —
+  // stored as free-text `notes` on the answer, since we don't keep a
+  // foreign key to the chosen option.
+  userAnswerText?: string | null;
   onMarkCorrect?: (questionId: number) => void;
   onMarkIncorrect?: (questionId: number) => void;
   onRemove?: (questionId: number) => void;
@@ -29,11 +33,14 @@ const difficultyColors: Record<string, string> = {
 function QuestionCardBase({
   question,
   isCorrect = null,
+  userAnswerText,
   onMarkCorrect,
   onMarkIncorrect,
   onRemove,
 }: QuestionCardProps) {
   const { t, language } = useLanguage();
+  const correctOption = question.options?.find((o) => o.is_correct);
+  const correctAnswerText = correctOption ? localizeOptionText(correctOption, language) : null;
   return (
     <div className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
       <div className="flex items-start justify-between gap-3">
@@ -64,6 +71,18 @@ function QuestionCardBase({
             <p className="text-sm text-slate-500 mt-1 line-clamp-2">
               {localizeQuestionDescription(question, language)}
             </p>
+          )}
+          {correctAnswerText && (
+            <div className="mt-2.5 space-y-1 text-sm">
+              <p className="text-emerald-700">
+                <span className="font-medium">{t.questionCard.correctAnswer}:</span> {correctAnswerText}
+              </p>
+              {isCorrect === false && userAnswerText && (
+                <p className="text-rose-700">
+                  <span className="font-medium">{t.questionCard.yourAnswer}:</span> {userAnswerText}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -66,6 +66,8 @@ export interface InterviewQuestion {
   category_name?: string;
   difficulty?: Difficulty;
   is_correct?: boolean | null;
+  // The text of the option the user picked when answering.
+  notes?: string | null;
 }
 
 export interface Statistics {

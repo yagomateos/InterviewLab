@@ -151,11 +151,13 @@ export function SimulationPage() {
       .createInterview({ title })
       .then((interview) =>
         Promise.all(
-          answeredQuestions.map((q) =>
-            api
+          answeredQuestions.map((q) => {
+            const selectedOption = q.options?.find((o) => o.id === selections[q.id]);
+            const selectedText = selectedOption ? localizeOptionText(selectedOption, language) : undefined;
+            return api
               .addQuestionToInterview(interview.id, q.id)
-              .then(() => api.setAnswer(interview.id, q.id, correctness[q.id] ?? false))
-          )
+              .then(() => api.setAnswer(interview.id, q.id, correctness[q.id] ?? false, selectedText));
+          })
         ).then(() => api.updateInterviewStatus(interview.id, "completed"))
       )
       .then(() => setSaveStatus("saved"))

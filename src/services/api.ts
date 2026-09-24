@@ -341,12 +341,12 @@ export const api = {
       }
     ),
 
-  setAnswer: (interviewId: number, questionId: number, isCorrect: boolean, _notes?: string) =>
+  setAnswer: (interviewId: number, questionId: number, isCorrect: boolean, notes?: string) =>
     withFallback(
       () =>
         request<{ is_correct: boolean }>(`/interviews/${interviewId}/questions/${questionId}/answer`, {
           method: "PUT",
-          body: JSON.stringify({ is_correct: isCorrect, notes: _notes }),
+          body: JSON.stringify({ is_correct: isCorrect, notes }),
         }),
       async () => {
         await delay(150);
@@ -356,6 +356,7 @@ export const api = {
         const iq = interview.questions?.find((q) => q.question_id === questionId);
         if (!iq) throw new Error("Question not in interview");
         iq.is_correct = isCorrect;
+        iq.notes = notes ?? null;
         return { is_correct: isCorrect };
       }
     ),

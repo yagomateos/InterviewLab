@@ -23,10 +23,12 @@ export function InterviewDetailPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [addQuestionId, setAddQuestionId] = useState("");
 
-  // Build a map of question_id → is_correct for quick lookup
+  // Build maps of question_id → is_correct / notes for quick lookup
   const answerMap = new Map<number, boolean | null>();
+  const notesMap = new Map<number, string | null>();
   interview?.questions?.forEach((iq) => {
     answerMap.set(iq.question_id, iq.is_correct ?? null);
+    notesMap.set(iq.question_id, iq.notes ?? null);
   });
 
   useEffect(() => {
@@ -137,6 +139,7 @@ export function InterviewDetailPage() {
       description_es: full?.description_es ?? null,
       difficulty: iq.difficulty ?? full?.difficulty ?? "medium",
       created_at: full?.created_at ?? "",
+      options: full?.options,
     };
   });
 
@@ -199,6 +202,7 @@ export function InterviewDetailPage() {
       <QuestionList
         questions={interviewQuestions}
         answerMap={answerMap}
+        notesMap={notesMap}
         onMarkCorrect={handleMarkCorrect}
         onMarkIncorrect={handleMarkIncorrect}
         onRemove={handleRemoveQuestion}

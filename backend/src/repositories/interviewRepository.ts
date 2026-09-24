@@ -61,7 +61,7 @@ export const interviewRepository = {
     const sql = `
       SELECT iq.id, iq.interview_id, iq.question_id, iq."order",
              q.title, q.title_es, c.name AS category_name, q.difficulty,
-             a.is_correct
+             a.is_correct, a.notes
       FROM interview_questions iq
       INNER JOIN questions q  ON iq.question_id = q.id
       INNER JOIN categories c ON q.category_id = c.id

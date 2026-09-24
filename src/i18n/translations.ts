@@ -170,6 +170,8 @@ export interface Translations {
     correct: string;
     incorrect: string;
     remove: string;
+    correctAnswer: string;
+    yourAnswer: string;
   };
   auth: {
     login: string;
@@ -354,6 +356,8 @@ export const translations: Record<Language, Translations> = {
       correct: "Correct",
       incorrect: "Incorrect",
       remove: "Remove",
+      correctAnswer: "Correct answer",
+      yourAnswer: "Your answer",
     },
     auth: {
       login: "Log in",
@@ -555,6 +559,8 @@ export const translations: Record<Language, Translations> = {
       correct: "Correcta",
       incorrect: "Incorrecta",
       remove: "Eliminar",
+      correctAnswer: "Respuesta correcta",
+      yourAnswer: "Tu respuesta",
     },
     auth: {
       login: "Iniciar sesión",

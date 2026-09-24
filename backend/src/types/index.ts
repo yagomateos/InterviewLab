@@ -59,6 +59,9 @@ export interface InterviewQuestion {
   category_name?: string;
   difficulty?: Difficulty;
   is_correct?: boolean | null;
+  // The text of the option the user picked when answering — lets the
+  // interview detail view show what was actually chosen, not just right/wrong.
+  notes?: string | null;
 }
 
 export interface Answer {

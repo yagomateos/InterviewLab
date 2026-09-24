@@ -11,6 +11,7 @@ interface QuestionListProps {
   onMarkIncorrect?: (questionId: number) => void;
   onRemove?: (questionId: number) => void;
   answerMap?: Map<number, boolean | null>;
+  notesMap?: Map<number, string | null>;
 }
 
 export function QuestionList({
@@ -19,6 +20,7 @@ export function QuestionList({
   onMarkIncorrect,
   onRemove,
   answerMap,
+  notesMap,
 }: QuestionListProps) {
   const { t } = useLanguage();
   // useCallback is NOT used here for these callbacks because they are already
@@ -53,6 +55,7 @@ export function QuestionList({
           key={q.id}
           question={q}
           isCorrect={answerMap?.get(q.id) ?? null}
+          userAnswerText={notesMap?.get(q.id) ?? null}
           onMarkCorrect={onMarkCorrect ? handleCorrect : undefined}
           onMarkIncorrect={onMarkIncorrect ? handleIncorrect : undefined}
           onRemove={onRemove ? handleRemove : undefined}
