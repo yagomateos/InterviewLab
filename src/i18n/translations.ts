@@ -20,7 +20,6 @@ export interface Translations {
     interviews: string;
     statistics: string;
     simulation: string;
-    async: string;
   };
   common: {
     loading: string;
@@ -146,26 +145,6 @@ export interface Translations {
     saveError: string;
     loginToSave: string;
   };
-  asyncDemo: {
-    title: string;
-    subtitle: string;
-    eventLoopTitle: string;
-    // The backend always returns the exact same fixed English explanation
-    // string (see systemService.ts) for this fixed demo scenario, so it's
-    // translated locally instead of over the wire.
-    explanationText: string;
-    delayLabel: string;
-    elapsedLabel: string;
-    totalElapsedPrefix: string;
-    totalElapsedMid: string;
-    totalElapsedSuffix: string;
-    allSettledTitle: string;
-    allSettledDescPrefix: string;
-    allSettledDescSuffix: string;
-    items: string;
-    allNote1: string;
-    allNote2: string;
-  };
   questionCard: {
     correct: string;
     incorrect: string;
@@ -205,7 +184,6 @@ export const translations: Record<Language, Translations> = {
       interviews: "Interviews",
       statistics: "Statistics",
       simulation: "Simulation",
-      async: "Async",
     },
     common: {
       loading: "Loading...",
@@ -331,27 +309,6 @@ export const translations: Record<Language, Translations> = {
       saveError: "Couldn't save this simulation",
       loginToSave: "Log in to save your results",
     },
-    asyncDemo: {
-      title: "Async & Promises Demo",
-      subtitle: "Live demonstration of the Node.js Event Loop, Promise.all, and Promise.allSettled",
-      eventLoopTitle: "Event Loop — Concurrent Async Operations",
-      explanationText:
-        "All four operations ran concurrently. If they were sequential " +
-        "the total time would be 410ms (50+200+10+150). With Promise.all " +
-        "they overlap, so the total is ~200ms — the slowest operation.",
-      delayLabel: "delay",
-      elapsedLabel: "elapsed",
-      totalElapsedPrefix: "Total elapsed:",
-      totalElapsedMid: "— if these were sequential it would be",
-      totalElapsedSuffix:
-        "ms. The Event Loop processes async callbacks concurrently without blocking the main thread.",
-      allSettledTitle: "Promise.allSettled — External Dashboard",
-      allSettledDescPrefix: "Four simulated services are called. One fails intentionally (difficulty-service). With",
-      allSettledDescSuffix: ", the endpoint returns all results — including the failure — instead of rejecting entirely.",
-      items: "items",
-      allNote1: "would have rejected the entire call when the difficulty-service failed — losing the data from the other three services.",
-      allNote2: "waits for all promises and reports each one's outcome individually.",
-    },
     questionCard: {
       correct: "Correct",
       incorrect: "Incorrect",
@@ -408,7 +365,6 @@ export const translations: Record<Language, Translations> = {
       interviews: "Entrevistas",
       statistics: "Estadísticas",
       simulation: "Simulación",
-      async: "Async",
     },
     common: {
       loading: "Cargando...",
@@ -533,27 +489,6 @@ export const translations: Record<Language, Translations> = {
       savedToInterviews: "Guardado en tus entrevistas",
       saveError: "No se pudo guardar esta simulación",
       loginToSave: "Inicia sesión para guardar tus resultados",
-    },
-    asyncDemo: {
-      title: "Demo de Async y Promesas",
-      subtitle: "Demostración en vivo del Event Loop de Node.js, Promise.all y Promise.allSettled",
-      eventLoopTitle: "Event Loop — Operaciones asíncronas concurrentes",
-      explanationText:
-        "Las cuatro operaciones se ejecutaron de forma concurrente. Si fueran " +
-        "secuenciales, el tiempo total sería 410ms (50+200+10+150). Con Promise.all " +
-        "se solapan, así que el total es ~200ms — el de la operación más lenta.",
-      delayLabel: "retardo",
-      elapsedLabel: "transcurrido",
-      totalElapsedPrefix: "Tiempo total transcurrido:",
-      totalElapsedMid: "— si fueran secuenciales sería",
-      totalElapsedSuffix:
-        "ms. El Event Loop procesa callbacks asíncronos de forma concurrente sin bloquear el hilo principal.",
-      allSettledTitle: "Promise.allSettled — Panel externo",
-      allSettledDescPrefix: "Se llama a cuatro servicios simulados. Uno falla a propósito (difficulty-service). Con",
-      allSettledDescSuffix: ", el endpoint devuelve todos los resultados — incluido el fallo — en lugar de rechazar por completo.",
-      items: "elementos",
-      allNote1: "habría rechazado toda la llamada cuando difficulty-service falló, perdiendo los datos de los otros tres servicios.",
-      allNote2: "espera a todas las promesas e informa del resultado de cada una individualmente.",
     },
     questionCard: {
       correct: "Correcta",

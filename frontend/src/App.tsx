@@ -6,7 +6,6 @@ import { InterviewsPage } from "@/pages/InterviewsPage";
 import { InterviewDetailPage } from "@/pages/InterviewDetailPage";
 import { StatisticsPage } from "@/pages/StatisticsPage";
 import { SimulationPage } from "@/pages/SimulationPage";
-import { AsyncDemoPage } from "@/pages/AsyncDemoPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { AuthProvider } from "@/auth/AuthContext";
@@ -55,7 +54,6 @@ function App() {
                   }
                 />
                 <Route path="/simulation" element={<SimulationPage />} />
-                <Route path="/async-demo" element={<AsyncDemoPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 {/* Land anonymous visitors on the public question bank
                     instead of a page that immediately bounces them to

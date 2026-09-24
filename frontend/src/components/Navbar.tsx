@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileQuestion, Users, BarChart3, Play, Zap, LogIn, LogOut } from "lucide-react";
+import { LayoutDashboard, FileQuestion, Users, BarChart3, Play, LogIn, LogOut } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/auth/AuthContext";
 
@@ -15,7 +15,6 @@ export function Navbar() {
     { to: "/interviews", label: t.nav.interviews, icon: Users },
     { to: "/statistics", label: t.nav.statistics, icon: BarChart3 },
     { to: "/simulation", label: t.nav.simulation, icon: Play },
-    { to: "/async-demo", label: t.nav.async, icon: Zap },
   ];
 
   const handleLogout = () => {

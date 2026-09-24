@@ -4,8 +4,6 @@ import type {
   Interview,
   Statistics,
   DashboardData,
-  AsyncDemoResult,
-  ExternalDashboardData,
   User,
 } from "@/types";
 import {
@@ -14,8 +12,6 @@ import {
   mockInterviews,
   computeMockStatistics,
   computeMockDashboard,
-  mockAsyncDemo,
-  computeMockExternalDashboard,
 } from "./mockData";
 import { getToken, setToken } from "./authToken";
 
@@ -396,25 +392,6 @@ export const api = {
       async () => {
         await delay(200);
         return computeMockDashboard(mockStore.requireMockUser().id);
-      }
-    ),
-
-  getExternalDashboard: () =>
-    withFallback(
-      () => request<ExternalDashboardData>("/dashboard/external"),
-      async () => {
-        await delay(300);
-        return computeMockExternalDashboard();
-      }
-    ),
-
-  // System
-  getAsyncDemo: () =>
-    withFallback(
-      () => request<AsyncDemoResult>("/system/async-demo"),
-      async () => {
-        await delay(300);
-        return mockAsyncDemo;
       }
     ),
 

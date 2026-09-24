@@ -102,18 +102,3 @@ export interface DashboardData {
   categories: Category[];
   recentActivity: { type: string; description: string; title: string; title_es: string | null; created_at: string }[];
 }
-
-export interface AsyncDemoResult {
-  totalElapsedMs: number;
-  operations: { name: string; delay: number; result: string; elapsedMs: number }[];
-  explanation: string;
-}
-
-export interface ExternalDashboardData {
-  services: {
-    name: string;
-    status: "fulfilled" | "rejected";
-    data: unknown;
-    error: string | null;
-  }[];
-}
