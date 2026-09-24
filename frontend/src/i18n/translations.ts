@@ -72,6 +72,8 @@ export interface Translations {
   interviews: {
     title: string;
     subtitleCount: (n: number) => string;
+    explainer: string;
+    emptyState: string;
     newInterview: string;
     formTitle: string;
     formUser: string;
@@ -138,6 +140,11 @@ export interface Translations {
     back: string;
     correctWord: string;
     incorrectWord: string;
+    savedTitle: (date: string) => string;
+    saving: string;
+    savedToInterviews: string;
+    saveError: string;
+    loginToSave: string;
   };
   asyncDemo: {
     title: string;
@@ -248,6 +255,8 @@ export const translations: Record<Language, Translations> = {
     interviews: {
       title: "Interviews",
       subtitleCount: (n: number) => `${n} interviews`,
+      explainer: "Finished Simulation runs are saved here automatically, and you can also put together your own interview by hand.",
+      emptyState: "You don't have any interviews yet. Run a Simulation to save your first one here, or create one manually below.",
       newInterview: "New Interview",
       formTitle: "Title",
       formUser: "User",
@@ -314,6 +323,11 @@ export const translations: Record<Language, Translations> = {
       back: "Back",
       correctWord: "correct",
       incorrectWord: "incorrect",
+      savedTitle: (date: string) => `Simulation — ${date}`,
+      saving: "Saving results...",
+      savedToInterviews: "Saved to your interviews",
+      saveError: "Couldn't save this simulation",
+      loginToSave: "Log in to save your results",
     },
     asyncDemo: {
       title: "Async & Promises Demo",
@@ -442,6 +456,8 @@ export const translations: Record<Language, Translations> = {
     interviews: {
       title: "Entrevistas",
       subtitleCount: (n: number) => `${n} entrevistas`,
+      explainer: "Aquí se guardan automáticamente las simulaciones que completas, y también puedes montar tu propia entrevista a mano.",
+      emptyState: "Todavía no tienes entrevistas. Haz una Simulación para guardar aquí la primera, o crea una manualmente debajo.",
       newInterview: "Nueva entrevista",
       formTitle: "Título",
       formUser: "Usuario",
@@ -508,6 +524,11 @@ export const translations: Record<Language, Translations> = {
       back: "Volver",
       correctWord: "correctas",
       incorrectWord: "incorrectas",
+      savedTitle: (date: string) => `Simulación — ${date}`,
+      saving: "Guardando resultados...",
+      savedToInterviews: "Guardado en tus entrevistas",
+      saveError: "No se pudo guardar esta simulación",
+      loginToSave: "Inicia sesión para guardar tus resultados",
     },
     asyncDemo: {
       title: "Demo de Async y Promesas",

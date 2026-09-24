@@ -12,10 +12,10 @@ import {
   mockStore,
   mockCategories,
   mockInterviews,
-  mockStatistics,
-  mockDashboard,
+  computeMockStatistics,
+  computeMockDashboard,
   mockAsyncDemo,
-  mockExternalDashboard,
+  computeMockExternalDashboard,
 } from "./mockData";
 import { getToken, setToken } from "./authToken";
 
@@ -360,23 +360,41 @@ export const api = {
       }
     ),
 
-  // Statistics
+  updateInterviewStatus: (interviewId: number, status: Interview["status"]) =>
+    withFallback(
+      () =>
+        request<Interview>(`/interviews/${interviewId}/status`, {
+          method: "PUT",
+          body: JSON.stringify({ status }),
+        }),
+      async () => {
+        await delay(150);
+        const userId = mockStore.requireMockUser().id;
+        const interview = mockStore.interviews.find((i) => i.id === interviewId && i.user_id === userId);
+        if (!interview) throw new Error("Interview not found");
+        interview.status = status;
+        return interview;
+      }
+    ),
+
+  // Statistics — personal progress, scoped to the logged-in user (both
+  // against the real backend and in the mock fallback).
   getStatistics: () =>
     withFallback(
       () => request<Statistics>("/statistics"),
       async () => {
         await delay(200);
-        return mockStatistics;
+        return computeMockStatistics(mockStore.requireMockUser().id);
       }
     ),
 
-  // Dashboard
+  // Dashboard — same scoping as statistics for the "stats" portion.
   getDashboard: () =>
     withFallback(
       () => request<DashboardData>("/dashboard"),
       async () => {
         await delay(200);
-        return mockDashboard;
+        return computeMockDashboard(mockStore.requireMockUser().id);
       }
     ),
 
@@ -385,7 +403,7 @@ export const api = {
       () => request<ExternalDashboardData>("/dashboard/external"),
       async () => {
         await delay(300);
-        return mockExternalDashboard;
+        return computeMockExternalDashboard();
       }
     ),
 

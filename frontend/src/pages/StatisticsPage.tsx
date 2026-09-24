@@ -171,7 +171,6 @@ export function StatisticsPage() {
               <div key={u.id} className="flex items-center gap-2 text-sm">
                 <UserX className="w-4 h-4 text-slate-400" />
                 <span className="font-medium text-slate-700">{u.name}</span>
-                <span className="text-slate-400">{u.email}</span>
               </div>
             ))}
           </div>

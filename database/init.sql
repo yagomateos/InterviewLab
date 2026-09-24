@@ -86,7 +86,10 @@ CREATE TABLE interview_questions (
 -- ============================================================
 CREATE TABLE answers (
     id                     SERIAL PRIMARY KEY,
-    interview_question_id  INTEGER NOT NULL REFERENCES interview_questions(id) ON DELETE CASCADE,
+    -- UNIQUE — each interview question has at most one answer; the
+    -- repository's INSERT ... ON CONFLICT (interview_question_id) upsert
+    -- relies on this constraint existing to know which row to update.
+    interview_question_id  INTEGER NOT NULL UNIQUE REFERENCES interview_questions(id) ON DELETE CASCADE,
     is_correct             BOOLEAN NOT NULL DEFAULT false,
     notes                  TEXT,
     created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()

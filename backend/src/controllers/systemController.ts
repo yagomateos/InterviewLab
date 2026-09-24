@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { AuthedRequest } from "../middleware/auth.js";
 import { runAsyncDemo, getDashboardData, getExternalDashboardData } from "../services/systemService.js";
 
 export const systemController = {
@@ -7,8 +8,8 @@ export const systemController = {
     res.json(result);
   },
 
-  async dashboard(_req: Request, res: Response) {
-    const data = await getDashboardData();
+  async dashboard(req: AuthedRequest, res: Response) {
+    const data = await getDashboardData(req.userId!);
     res.json(data);
   },
 

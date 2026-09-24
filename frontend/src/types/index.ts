@@ -77,7 +77,7 @@ export interface Statistics {
   success_rate: number;
   by_category: CategoryStat[];
   by_difficulty: DifficultyStat[];
-  users_without_interviews: { id: number; name: string; email: string }[];
+  users_without_interviews: { id: number; name: string }[];
 }
 
 export interface CategoryStat {

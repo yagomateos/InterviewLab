@@ -1,14 +1,19 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/services/api";
 import type { Question, Category } from "@/types";
 import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
-import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Circle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw, Trophy, Circle, Save, LogIn } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { translateError } from "@/i18n/translations";
 import { localizeQuestionTitle, localizeQuestionDescription, localizeOptionText } from "@/i18n/localize";
+import { useAuth } from "@/auth/AuthContext";
+
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function SimulationPage() {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +36,15 @@ export function SimulationPage() {
   // Which option the user picked for each answered question, keyed by
   // question id — used to grade the checklist and highlight the choice.
   const [selections, setSelections] = useState<Record<number, number>>({});
+  // Whether each answered question was correct — kept alongside selections
+  // so the finished simulation can be saved as a real interview.
+  const [correctness, setCorrectness] = useState<Record<number, boolean>>({});
+
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  // Guards against saving twice (e.g. a re-render while the save is
+  // in flight) — a ref because it must be readable synchronously,
+  // before the state update from setSaveStatus("saving") has committed.
+  const savingRef = useRef(false);
 
   useEffect(() => {
     Promise.all([api.getQuestions(), api.getCategories()])
@@ -59,6 +73,9 @@ export function SimulationPage() {
     setWrongCount(0);
     setAnswered(new Set());
     setSelections({});
+    setCorrectness({});
+    setSaveStatus("idle");
+    savingRef.current = false;
     setFinished(false);
   };
 
@@ -69,6 +86,9 @@ export function SimulationPage() {
     setWrongCount(0);
     setAnswered(new Set());
     setSelections({});
+    setCorrectness({});
+    setSaveStatus("idle");
+    savingRef.current = false;
     setFinished(false);
   };
 
@@ -110,10 +130,40 @@ export function SimulationPage() {
         setWrongCount((prev) => prev + 1);
       }
       setSelections((prev) => ({ ...prev, [questionId]: optionId }));
+      setCorrectness((prev) => ({ ...prev, [questionId]: isCorrect }));
       setAnswered((prev) => new Set(prev).add(questionId));
     },
     [simQuestions, currentIndex, answered]
   );
+
+  // Once the simulation finishes, save it as a real interview (so it shows
+  // up under "Interviews" and counts toward Statistics) — only when logged
+  // in, and only once per run.
+  useEffect(() => {
+    if (!finished || !user || savingRef.current) return;
+    savingRef.current = true;
+    setSaveStatus("saving");
+
+    const title = t.simulation.savedTitle(new Date().toLocaleDateString(language === "es" ? "es-ES" : "en-US"));
+    const answeredQuestions = simQuestions.filter((q) => answered.has(q.id));
+
+    api
+      .createInterview({ title })
+      .then((interview) =>
+        Promise.all(
+          answeredQuestions.map((q) =>
+            api
+              .addQuestionToInterview(interview.id, q.id)
+              .then(() => api.setAnswer(interview.id, q.id, correctness[q.id] ?? false))
+          )
+        ).then(() => api.updateInterviewStatus(interview.id, "completed"))
+      )
+      .then(() => setSaveStatus("saved"))
+      .catch(() => setSaveStatus("error"));
+    // Only re-run when a NEW simulation finishes — the deps below matter
+    // for closure freshness, but savingRef is what actually prevents repeats.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished, user]);
 
   if (loading) return <Loading />;
   if (error) return <ErrorBanner message={translateError(error, t)} />;
@@ -194,6 +244,37 @@ export function SimulationPage() {
               <p className="text-xs text-slate-400">{t.simulation.incorrect}</p>
             </div>
           </div>
+
+          {user ? (
+            <div className="mb-6 flex items-center justify-center gap-2 text-sm">
+              {saveStatus === "saving" && (
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  <Save className="w-4 h-4 animate-pulse" />
+                  {t.simulation.saving}
+                </span>
+              )}
+              {saveStatus === "saved" && (
+                <span className="flex items-center gap-1.5 text-emerald-600">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {t.simulation.savedToInterviews}
+                </span>
+              )}
+              {saveStatus === "error" && (
+                <span className="flex items-center gap-1.5 text-rose-600">
+                  <XCircle className="w-4 h-4" />
+                  {t.simulation.saveError}
+                </span>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="mb-6 flex items-center justify-center gap-1.5 text-sm text-sky-600 hover:text-sky-700 font-medium"
+            >
+              <LogIn className="w-4 h-4" />
+              {t.simulation.loginToSave}
+            </Link>
+          )}
 
           <button
             onClick={resetSimulation}

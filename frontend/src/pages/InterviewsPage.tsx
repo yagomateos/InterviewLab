@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/services/api";
 import type { Interview } from "@/types";
 import { Loading, ErrorBanner, PageHeader } from "@/components/ui";
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight, Play } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { translateError } from "@/i18n/translations";
 
@@ -52,7 +52,7 @@ export function InterviewsPage() {
     <div>
       <PageHeader
         title={t.interviews.title}
-        subtitle={t.interviews.subtitleCount(interviews.length)}
+        subtitle={t.interviews.explainer}
         action={
           <button
             onClick={() => setShowForm((s) => !s)}
@@ -89,6 +89,19 @@ export function InterviewsPage() {
               {t.common.cancel}
             </button>
           </div>
+        </div>
+      )}
+
+      {interviews.length === 0 && !showForm && (
+        <div className="bg-white border border-dashed border-slate-300 rounded-xl p-8 text-center mb-6">
+          <p className="text-sm text-slate-500 mb-4">{t.interviews.emptyState}</p>
+          <Link
+            to="/simulation"
+            className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md bg-sky-500 text-white hover:bg-sky-600 transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            {t.nav.simulation}
+          </Link>
         </div>
       )}
 

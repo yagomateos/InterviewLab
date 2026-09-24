@@ -1,13 +1,15 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
+import type { AuthedRequest } from "../middleware/auth.js";
 import { statisticsService } from "../services/statisticsService.js";
 
 export const statisticsController = {
-  async getStatistics(_req: Request, res: Response) {
+  async getStatistics(req: AuthedRequest, res: Response) {
+    const userId = req.userId!;
     const [stats, categoryStats, difficultyStats, usersWithoutInterviews] =
       await Promise.all([
-        statisticsService.getStatistics(),
-        statisticsService.getCategoryStats(1),
-        statisticsService.getDifficultyStats(),
+        statisticsService.getStatistics(userId),
+        statisticsService.getCategoryStats(userId, 1),
+        statisticsService.getDifficultyStats(userId),
         statisticsService.getUsersWithoutInterviews(),
       ]);
     res.json({

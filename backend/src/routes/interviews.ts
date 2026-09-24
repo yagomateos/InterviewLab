@@ -13,5 +13,6 @@ router.post("/", interviewController.create);
 router.post("/:id/questions", interviewController.addQuestion);
 router.delete("/:id/questions/:questionId", interviewController.removeQuestion);
 router.put("/:id/questions/:questionId/answer", interviewController.setAnswer);
+router.put("/:id/status", interviewController.updateStatus);
 
 export default router;

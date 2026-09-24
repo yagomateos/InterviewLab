@@ -8,21 +8,19 @@ import type {
 } from "../types/index.js";
 
 export const statisticsService = {
-  async getStatistics(): Promise<Statistics> {
-    return statisticsRepository.getStatistics();
+  async getStatistics(userId: number | null): Promise<Statistics> {
+    return statisticsRepository.getStatistics(userId);
   },
 
-  async getCategoryStats(minQuestions: number = 1): Promise<CategoryStat[]> {
-    return statisticsRepository.getCategoryStats(minQuestions);
+  async getCategoryStats(userId: number, minQuestions: number = 1): Promise<CategoryStat[]> {
+    return statisticsRepository.getCategoryStats(minQuestions, userId);
   },
 
-  async getDifficultyStats(): Promise<DifficultyStat[]> {
-    return statisticsRepository.getDifficultyStats();
+  async getDifficultyStats(userId: number): Promise<DifficultyStat[]> {
+    return statisticsRepository.getDifficultyStats(userId);
   },
 
-  async getUsersWithoutInterviews(): Promise<
-    { id: number; name: string; email: string }[]
-  > {
+  async getUsersWithoutInterviews(): Promise<{ id: number; name: string }[]> {
     return statisticsRepository.getUsersWithoutInterviews();
   },
 

@@ -65,4 +65,17 @@ export const interviewService = {
     }
     return interviewRepository.setAnswer(iq.id, isCorrect, notes);
   },
+
+  async updateStatus(
+    id: number,
+    status: string,
+    userId: number
+  ): Promise<Interview | null> {
+    const owned = await interviewService.getById(id, userId);
+    if (!owned) return null;
+    if (!["scheduled", "in_progress", "completed"].includes(status)) {
+      throw new Error("Invalid status");
+    }
+    return interviewRepository.updateStatus(id, status);
+  },
 };

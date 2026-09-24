@@ -3,6 +3,8 @@ import type {
   Category,
   Interview,
   Statistics,
+  CategoryStat,
+  DifficultyStat,
   DashboardData,
   AsyncDemoResult,
   ExternalDashboardData,
@@ -680,50 +682,75 @@ export const mockInterviews: Interview[] = [
   { id: 4, user_id: 1, user_name: "Alice Johnson", title: "DevOps Interview",              status: "scheduled",   created_at: now, question_count: 0, questions: [] },
 ];
 
-export const mockStatistics: Statistics = {
-  total_questions: 60,
-  total_interviews: 4,
-  total_answers: 11,
-  correct_answers: 7,
-  incorrect_answers: 4,
-  success_rate: 64,
-  by_category: [
-    { category: "JavaScript",      question_count: 8,  correct_count: 2, incorrect_count: 0 },
-    { category: "TypeScript",      question_count: 6,  correct_count: 1, incorrect_count: 0 },
-    { category: "React",           question_count: 9,  correct_count: 2, incorrect_count: 2 },
-    { category: "Node.js",         question_count: 7,  correct_count: 1, incorrect_count: 1 },
-    { category: "SQL",             question_count: 8,  correct_count: 2, incorrect_count: 1 },
-    { category: "Docker",          question_count: 5,  correct_count: 0, incorrect_count: 0 },
-    { category: "CSS",             question_count: 4,  correct_count: 0, incorrect_count: 0 },
-    { category: "Algorithms",      question_count: 5,  correct_count: 0, incorrect_count: 0 },
-    { category: "System Design",   question_count: 6,  correct_count: 0, incorrect_count: 0 },
-    { category: "DevOps",          question_count: 4,  correct_count: 0, incorrect_count: 0 },
-    { category: "Security",        question_count: 4,  correct_count: 0, incorrect_count: 0 },
-    { category: "Testing",         question_count: 4,  correct_count: 0, incorrect_count: 0 },
-    { category: "Web Performance", question_count: 4,  correct_count: 0, incorrect_count: 0 },
-  ],
-  by_difficulty: [
-    { difficulty: "easy",   question_count: 11, correct_count: 3, incorrect_count: 1 },
-    { difficulty: "medium", question_count: 30, correct_count: 4, incorrect_count: 2 },
-    { difficulty: "hard",   question_count: 19, correct_count: 1, incorrect_count: 1 },
-  ],
-  users_without_interviews: [
-    { id: 3, name: "Carol Davis", email: "carol@example.com" },
-  ],
-};
+// Statistics and dashboard "stats" are computed on demand from mockStore
+// (declared further below), scoped to one user — same shape as the real
+// backend's per-user-scoped SQL queries, so the offline fallback doesn't
+// mislead a freshly-registered mock user by showing someone else's data.
+// question_count stays global (the shared bank); correct/incorrect counts
+// only include the given user's own answered interview questions.
+export function computeMockStatistics(userId: number | null): Statistics {
+  const totalQuestions = mockStore.questions.length;
+  const myInterviews = userId ? mockStore.interviews.filter((i) => i.user_id === userId) : [];
+  const myAnswers = myInterviews.flatMap((i) => i.questions ?? []).filter((iq) => iq.is_correct !== null && iq.is_correct !== undefined);
+  const correctAnswers = myAnswers.filter((iq) => iq.is_correct === true).length;
+  const incorrectAnswers = myAnswers.filter((iq) => iq.is_correct === false).length;
+  const totalAnswers = correctAnswers + incorrectAnswers;
 
-export const mockDashboard: DashboardData = {
-  stats: mockStatistics,
-  recentQuestions: mockQuestions.slice(0, 5),
-  categories: mockCategories,
-  recentActivity: mockQuestions.slice(0, 10).map((q) => ({
-    type: "question",
-    description: `New question: ${q.title}`,
-    title: q.title,
-    title_es: q.title_es ?? null,
-    created_at: q.created_at,
-  })),
-};
+  const categoryMap = new Map<string, CategoryStat>();
+  for (const q of mockStore.questions) {
+    const name = q.category_name ?? "—";
+    if (!categoryMap.has(name)) {
+      categoryMap.set(name, { category: name, question_count: 0, correct_count: 0, incorrect_count: 0 });
+    }
+    categoryMap.get(name)!.question_count++;
+  }
+  const difficultyMap = new Map<string, DifficultyStat>();
+  for (const q of mockStore.questions) {
+    if (!difficultyMap.has(q.difficulty)) {
+      difficultyMap.set(q.difficulty, { difficulty: q.difficulty, question_count: 0, correct_count: 0, incorrect_count: 0 });
+    }
+    difficultyMap.get(q.difficulty)!.question_count++;
+  }
+  for (const iq of myAnswers) {
+    const q = mockStore.questions.find((mq) => mq.id === iq.question_id);
+    if (!q) continue;
+    const cat = categoryMap.get(q.category_name ?? "—");
+    const diff = difficultyMap.get(q.difficulty);
+    const key = iq.is_correct ? "correct_count" : "incorrect_count";
+    if (cat) cat[key]++;
+    if (diff) diff[key]++;
+  }
+
+  return {
+    total_questions: totalQuestions,
+    total_interviews: myInterviews.length,
+    total_answers: totalAnswers,
+    correct_answers: correctAnswers,
+    incorrect_answers: incorrectAnswers,
+    success_rate: totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0,
+    by_category: [...categoryMap.values()].sort((a, b) => b.question_count - a.question_count),
+    by_difficulty: [...difficultyMap.values()],
+    // Global LEFT JOIN demo (same for everyone) — mirrors the real backend.
+    users_without_interviews: mockStore.users
+      .filter((u) => !mockStore.interviews.some((i) => i.user_id === u.id))
+      .map((u) => ({ id: u.id, name: u.name })),
+  };
+}
+
+export function computeMockDashboard(userId: number | null): DashboardData {
+  return {
+    stats: computeMockStatistics(userId),
+    recentQuestions: mockStore.questions.slice(0, 5),
+    categories: mockCategories,
+    recentActivity: mockStore.questions.slice(0, 10).map((q) => ({
+      type: "question",
+      description: `New question: ${q.title}`,
+      title: q.title,
+      title_es: q.title_es ?? null,
+      created_at: q.created_at,
+    })),
+  };
+}
 
 export const mockAsyncDemo: AsyncDemoResult = {
   totalElapsedMs: 203,
@@ -739,34 +766,39 @@ export const mockAsyncDemo: AsyncDemoResult = {
     "they overlap, so the total is ~200ms — the slowest operation.",
 };
 
-export const mockExternalDashboard: ExternalDashboardData = {
-  services: [
-    {
-      name: "questions-service",
-      status: "fulfilled",
-      data: mockQuestions.slice(0, 5),
-      error: null,
-    },
-    {
-      name: "statistics-service",
-      status: "fulfilled",
-      data: mockStatistics,
-      error: null,
-    },
-    {
-      name: "recommendations-service",
-      status: "fulfilled",
-      data: ["Review Docker networking", "Practice Promise.all vs allSettled", "Study SQL JOINs"],
-      error: null,
-    },
-    {
-      name: "difficulty-service",
-      status: "rejected",
-      data: null,
-      error: "Error: External difficulty service unavailable",
-    },
-  ],
-};
+// A function (not a static const) because it calls computeMockStatistics,
+// which reads mockStore — declared further below, so it must be evaluated
+// lazily (after the whole module has finished loading), not at import time.
+export function computeMockExternalDashboard(): ExternalDashboardData {
+  return {
+    services: [
+      {
+        name: "questions-service",
+        status: "fulfilled",
+        data: mockQuestions.slice(0, 5),
+        error: null,
+      },
+      {
+        name: "statistics-service",
+        status: "fulfilled",
+        data: computeMockStatistics(null),
+        error: null,
+      },
+      {
+        name: "recommendations-service",
+        status: "fulfilled",
+        data: ["Review Docker networking", "Practice Promise.all vs allSettled", "Study SQL JOINs"],
+        error: null,
+      },
+      {
+        name: "difficulty-service",
+        status: "rejected",
+        data: null,
+        error: "Error: External difficulty service unavailable",
+      },
+    ],
+  };
+}
 
 // Mutable in-memory store for create/update/delete operations in mock mode.
 // nextQuestionId starts after the last seeded id (mockQuestions now runs

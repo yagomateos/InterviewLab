@@ -21,7 +21,14 @@ function App() {
             <Navbar />
             <main className="max-w-6xl mx-auto px-4 py-8">
               <Routes>
-                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/questions" element={<QuestionsPage />} />
                 <Route
                   path="/interviews"
@@ -39,12 +46,23 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/statistics" element={<StatisticsPage />} />
+                <Route
+                  path="/statistics"
+                  element={
+                    <ProtectedRoute>
+                      <StatisticsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/simulation" element={<SimulationPage />} />
                 <Route path="/async-demo" element={<AsyncDemoPage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                {/* Land anonymous visitors on the public question bank
+                    instead of a page that immediately bounces them to
+                    /login — Dashboard/Statistics only make sense once
+                    there's "you" to show data for. */}
+                <Route path="/" element={<Navigate to="/questions" replace />} />
+                <Route path="*" element={<Navigate to="/questions" replace />} />
               </Routes>
             </main>
             <footer className="border-t border-slate-200 py-4 mt-8">

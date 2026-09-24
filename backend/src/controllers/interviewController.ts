@@ -86,4 +86,23 @@ export const interviewController = {
       res.status(400).json({ error: "bad_request", message: (err as Error).message });
     }
   },
+
+  async updateStatus(req: AuthedRequest, res: Response) {
+    const interviewId = parseInt(req.params.id, 10);
+    validateRequired(req.body, ["status"]);
+    try {
+      const interview = await interviewService.updateStatus(
+        interviewId,
+        String(req.body.status),
+        req.userId!
+      );
+      if (!interview) {
+        res.status(404).json({ error: "not_found", message: "Interview not found" });
+        return;
+      }
+      res.json(interview);
+    } catch (err) {
+      res.status(400).json({ error: "bad_request", message: (err as Error).message });
+    }
+  },
 };
