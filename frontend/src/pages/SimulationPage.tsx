@@ -11,6 +11,18 @@ import { useAuth } from "@/auth/AuthContext";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+// Fisher-Yates — the seed data always inserts the correct option first, and
+// the backend returns options ordered by id, so without this the correct
+// answer would always be the first item in the checklist.
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function SimulationPage() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
@@ -67,6 +79,11 @@ export function SimulationPage() {
       : questions;
 
   const startSimulation = () => {
+    // Reshuffle each question's options so the correct answer isn't always
+    // in the same position (and so repeated runs don't get the same order).
+    setQuestions((prev) =>
+      prev.map((q) => (q.options ? { ...q, options: shuffle(q.options) } : q))
+    );
     setStarted(true);
     setCurrentIndex(0);
     setScore(0);
