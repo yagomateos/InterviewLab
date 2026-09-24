@@ -1,6 +1,19 @@
 # InterviewLab
 
-Aplicación web para gestionar entrevistas técnicas. Construida con React, TypeScript, Node.js/Express y PostgreSQL, ejecutándose completamente en Docker.
+App web para practicar entrevistas técnicas: banco de preguntas, simulacros con checklist de opciones, entrevistas que guardan lo que respondiste, y estadísticas reales por usuario. React + TypeScript + Node/Express + PostgreSQL, con auth JWT e interfaz en inglés/español.
+
+**En producción:** [interviewlab-navy.vercel.app](https://interviewlab-navy.vercel.app) — cuentas de demo: `alice@example.com` / `bob@example.com` / `carol@example.com`, contraseña `demo1234`.
+
+---
+
+## Capturas
+
+| | |
+|---|---|
+| ![Panel](docs/screenshots/panel.jpg) **Panel** — resumen del progreso: preguntas totales, entrevistas, respuestas correctas y tasa de éxito, todo filtrado por el usuario logueado. | ![Preguntas](docs/screenshots/preguntas.jpg) **Banco de preguntas** — 280 preguntas en 14 categorías, con la respuesta correcta explicada debajo de cada una. |
+| ![Simulación](docs/screenshots/simulacion-opciones.jpg) **Simulación** — checklist de 3 opciones por pregunta; el orden se baraja en cada intento, así que la correcta no está siempre en el mismo sitio. | ![Simulación Async](docs/screenshots/simulacion-async.jpg) **Categoría Async** — 20 preguntas sobre Promises, async/await, race conditions, AbortController y más, en inglés y español. |
+| ![Entrevistas](docs/screenshots/entrevistas.jpg) **Entrevistas** — cada simulación completada se guarda aquí automáticamente, con su estado (programada / completada). | ![Detalle de entrevista](docs/screenshots/entrevista-respuesta.jpg) **Detalle de entrevista** — se ve la respuesta correcta y, si fallaste, la opción que elegiste. |
+| ![Estadísticas](docs/screenshots/estadisticas.jpg) **Estadísticas** — desglose por categoría y dificultad, calculado con `GROUP BY` / `HAVING` / `JOIN`s reales sobre PostgreSQL. | |
 
 ---
 
@@ -30,89 +43,79 @@ Node / Express (TypeScript)
         ↓
 Controllers → Services → Repositories
         ↓ SQL parametrizado
-PostgreSQL
+PostgreSQL (Neon, en producción)
 ```
+
+En local, los tres servicios corren en Docker (`docker-compose.yml`). En producción, todo se despliega junto en Vercel: el backend Express se expone como una única función serverless (`api/[...all].ts`) y la base de datos es Neon Postgres (PostgreSQL gestionado, vía Vercel Marketplace).
+
+**Autenticación**: JWT. `POST /api/auth/register` y `/login` devuelven un token; el resto de rutas de interviews/statistics lo exigen vía middleware `requireAuth`, y `req.userId` se usa para que cada usuario solo vea sus propias entrevistas y estadísticas — nunca datos de otra cuenta.
+
+**Internacionalización**: toda la interfaz (menús, botones, mensajes) y el contenido de las 280 preguntas (título, descripción y las 3 opciones) están traducidos a inglés y español. El selector `EN / ES` de la barra superior cambia ambos a la vez.
 
 ### Estructura del proyecto
 
 ```
 interviewlab/
-├── docker-compose.yml
+├── vercel.json                # Rewrites de producción (API + SPA)
+├── docker-compose.yml         # Stack local: postgres + backend + frontend
 ├── database/
-│   └── init.sql              # Schema + seed data
+│   └── init.sql               # Schema + seed data (280 preguntas, 14 categorías)
 ├── backend/
 │   ├── Dockerfile
-│   ├── package.json
-│   ├── tsconfig.json
 │   ├── src/
-│   │   ├── index.ts          # Entry point (Express app)
+│   │   ├── index.ts           # Entry point (Express app)
 │   │   ├── config/
-│   │   │   └── db.ts         # PostgreSQL connection pool
+│   │   │   └── db.ts          # Pool de conexión a PostgreSQL
 │   │   ├── types/
-│   │   │   └── index.ts      # Domain types + `typeof` usage
-│   │   ├── repositories/     # SQL queries (parameterized)
+│   │   │   └── index.ts       # Tipos de dominio + uso de `typeof`
+│   │   ├── repositories/      # SQL parametrizado
 │   │   │   ├── questionRepository.ts
 │   │   │   ├── categoryRepository.ts
 │   │   │   ├── interviewRepository.ts
 │   │   │   └── statisticsRepository.ts
-│   │   ├── services/         # Business logic + async patterns
+│   │   ├── services/          # Lógica de negocio
+│   │   │   ├── authService.ts
 │   │   │   ├── questionService.ts
 │   │   │   ├── categoryService.ts
 │   │   │   ├── interviewService.ts
 │   │   │   ├── statisticsService.ts
-│   │   │   └── systemService.ts   # Event Loop, Promise.all, allSettled
-│   │   ├── controllers/      # HTTP handlers (thin)
-│   │   │   ├── questionController.ts
-│   │   │   ├── categoryController.ts
-│   │   │   ├── interviewController.ts
-│   │   │   ├── statisticsController.ts
-│   │   │   └── systemController.ts
-│   │   ├── routes/           # Express routers
-│   │   │   ├── questions.ts
-│   │   │   ├── categories.ts
-│   │   │   ├── interviews.ts
-│   │   │   ├── statistics.ts
-│   │   │   ├── system.ts
-│   │   │   └── dashboard.ts
+│   │   │   └── systemService.ts    # Dashboard con Promise.all
+│   │   ├── controllers/       # HTTP handlers (finos)
+│   │   ├── routes/            # Routers de Express
 │   │   ├── middleware/
+│   │   │   ├── auth.ts        # requireAuth / attachUser (JWT)
 │   │   │   └── errorHandler.ts
 │   │   └── utils/
-│   │       └── sortBy.ts     # Generic sort with `keyof`
-│   └── tests/
-│       ├── sortBy.test.ts
-│       └── systemService.test.ts
-├── frontend/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   ├── src/
-│   │   ├── App.tsx           # Router
-│   │   ├── main.tsx
-│   │   ├── components/
-│   │   │   ├── Navbar.tsx
-│   │   │   ├── QuestionCard.tsx    # React.memo
-│   │   │   ├── QuestionList.tsx    # useCallback
-│   │   │   └── ui.tsx
-│   │   ├── pages/
-│   │   │   ├── DashboardPage.tsx
-│   │   │   ├── QuestionsPage.tsx         # useMemo + keyof (sortBy)
-│   │   │   ├── InterviewsPage.tsx
-│   │   │   ├── InterviewDetailPage.tsx   # useCallback
-│   │   │   ├── StatisticsPage.tsx        # useMemo
-│   │   │   ├── SimulationPage.tsx        # setState(prev => ...)
-│   │   │   └── AsyncDemoPage.tsx
-│   │   ├── hooks/
-│   │   │   └── useFetch.ts
-│   │   ├── services/
-│   │   │   └── api.ts
-│   │   ├── types/
-│   │   │   └── index.ts          # `typeof` usage
-│   │   └── utils/
-│   │       └── sortBy.ts         # Generic sort with `keyof`
+│   │       └── sortBy.ts      # Sort genérico con `keyof`
 │   └── tests/
 │       └── sortBy.test.ts
-└── README.md
+├── src/                       # Frontend (usado por Vercel)
+│   ├── App.tsx                # Router
+│   ├── auth/
+│   │   ├── AuthContext.tsx
+│   │   └── ProtectedRoute.tsx
+│   ├── i18n/
+│   │   ├── translations.ts    # Textos EN/ES de la interfaz
+│   │   └── localize.ts        # Localización del contenido de preguntas
+│   ├── components/
+│   │   ├── Navbar.tsx
+│   │   ├── QuestionCard.tsx   # React.memo
+│   │   ├── QuestionList.tsx   # useCallback
+│   │   └── ui.tsx
+│   ├── pages/
+│   │   ├── DashboardPage.tsx
+│   │   ├── QuestionsPage.tsx         # useMemo + keyof (sortBy)
+│   │   ├── InterviewsPage.tsx
+│   │   ├── InterviewDetailPage.tsx   # useCallback
+│   │   ├── StatisticsPage.tsx        # useMemo
+│   │   ├── SimulationPage.tsx        # setState(prev => ...), barajado de opciones
+│   │   └── LoginPage.tsx
+│   ├── services/
+│   │   ├── api.ts             # Cliente HTTP + fallback a datos mock si el backend no responde
+│   │   └── mockData.ts
+│   └── types/
+│       └── index.ts           # `typeof` usage
+└── frontend/                  # Espejo de src/ para el build de Docker (mismo código)
 ```
 
 ### Separación de responsabilidades
@@ -150,7 +153,7 @@ export function sortBy<T>(items: T[], key: keyof T, direction: "asc" | "desc" = 
 
 Esto significa que `sortBy(questions, "difficulty")` compila, pero `sortBy(questions, "nonexistent")` da un **error de compilación**.
 
-**Dónde se usa**: `src/utils/sortBy.ts`, `frontend/src/utils/sortBy.ts`, `backend/src/utils/sortBy.ts`
+**Dónde se usa**: `src/utils/sortBy.ts`, `backend/src/utils/sortBy.ts`
 
 ### `typeof`
 
@@ -215,7 +218,7 @@ Estos cálculos iteran sobre arrays y realizan comparaciones en cada iteración.
 
 ### Por qué NO usar useMemo en todo
 
-`useMemo` tiene un coste: React almacena el valor y compara las dependencias en cada render. Para cálculos triviales (una suma, una concatenación), ese coste es mayor que el cálculo本身. En este proyecto, **no** se memoriza el array `categories` que se pasa directamente al JSX — es una referencia simple que no necesita memoización.
+`useMemo` tiene un coste: React almacena el valor y compara las dependencias en cada render. Para cálculos triviales (una suma, una concatenación), ese coste es mayor que el cálculo en sí. En este proyecto, **no** se memoriza el array `categories` que se pasa directamente al JSX — es una referencia simple que no necesita memoización.
 
 ---
 
@@ -314,36 +317,11 @@ JavaScript se ejecuta principalmente en un **hilo principal** (main thread). En 
 
 **"Node es single-thread" es una simplificación**: el código JavaScript se ejecuta en un solo hilo, pero las operaciones I/O se delegan al sistema operativo o al thread pool de libuv. Mientras esas operaciones se completan, el hilo principal puede seguir atendiendo otras peticiones.
 
-### Dónde se demuestra
+**microtasks vs macrotasks**: los callbacks de Promises se encolan como microtasks, que el Event Loop vacía por completo después de cada tarea síncrona y antes de pasar a la siguiente macrotask (como un `setTimeout`) — por eso un `.then()` siempre se ejecuta antes que un `setTimeout(fn, 0)` programado al mismo tiempo.
 
-**`backend/src/services/systemService.ts`**:
+### Dónde se practica
 
-```typescript
-export function simulateExternalService(delay: number = 100): Promise<string> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(`Completed after ${delay}ms`), delay);
-  });
-}
-
-export async function runAsyncDemo() {
-  // 4 operaciones con delays de 50, 200, 10, 150 ms
-  // Con Promise.all se ejecutan concurrentemente
-  // Total ~200ms (el más lento) en vez de 410ms (sumatorio)
-  const results = await Promise.all(
-    operations.map(async (op) => {
-      const result = await simulateExternalService(op.delay);
-      return { name: op.name, delay: op.delay, result, elapsedMs: Date.now() - start };
-    })
-  );
-  return { totalElapsedMs: Date.now() - start, operations: results, explanation };
-}
-```
-
-**Endpoint**: `GET /api/system/async-demo`
-
-### Frontend que lo visualiza
-
-**`src/pages/AsyncDemoPage.tsx`** — muestra los tiempos de cada operación y el total, demostrando que se ejecutaron concurrentemente.
+Estos conceptos ya no viven en un endpoint de demo, sino en el banco de preguntas real: la categoría **Async** (`/simulation`, filtro "Async") tiene 20 preguntas de opción múltiple sobre el Event Loop, microtasks/macrotasks, `Promise.all`/`race`/`any`/`allSettled`, `AbortController`, race conditions y más — con la respuesta correcta explicada al fallar (ver [Entrevistas](docs/screenshots/entrevista-respuesta.jpg) en las capturas de arriba).
 
 ---
 
@@ -360,9 +338,9 @@ Cuando tienes varias operaciones **independientes** y **necesitas todas** para c
 **`backend/src/services/systemService.ts`** — endpoint del dashboard:
 
 ```typescript
-export async function getDashboardData() {
+export async function getDashboardData(userId: number) {
   const [stats, recentQuestions, categories, recentActivity] = await Promise.all([
-    statisticsService.getStatistics(),
+    statisticsService.getStatistics(userId),
     statisticsService.getRecentQuestions(5),
     categoryService.getAll(),
     statisticsService.getRecentActivity(10),
@@ -373,7 +351,7 @@ export async function getDashboardData() {
 
 Las cuatro consultas son independientes (no se necesitan entre sí). Con `Promise.all` se ejecutan concurrentemente. Si fueran secuenciales (`await getStats(); await getQuestions(); ...`), el tiempo total sería la **suma** de los tiempos. Con `Promise.all`, es el **máximo**.
 
-**Endpoint**: `GET /api/dashboard`
+**Endpoint**: `GET /api/dashboard` (requiere sesión — `stats` está filtrado por el usuario logueado)
 
 ---
 
@@ -383,36 +361,12 @@ Las cuatro consultas son independientes (no se necesitan entre sí). Con `Promis
 
 ### Cuándo usarlo
 
-Cuando quieres resultados **parciales** — aunque algunas operaciones fallen, quieres lo que sí funcionó.
-
-### Dónde se usa
-
-**`backend/src/services/systemService.ts`** — endpoint del dashboard externo:
+Cuando quieres resultados **parciales** — aunque algunas operaciones fallen, quieres lo que sí funcionó. Por ejemplo, llamar a varias APIs independientes donde un fallo parcial no debería tirar toda la respuesta abajo.
 
 ```typescript
-export async function getExternalDashboardData() {
-  const [questionsResult, statsResult, recommendationsResult, difficultyResult] =
-    await Promise.allSettled([
-      simulateExternalService(80).then(() => statisticsService.getRecentQuestions(5)),
-      simulateExternalService(100).then(() => statisticsService.getStatistics()),
-      simulateExternalService(60).then(() => ["Review Docker networking", ...]),
-      failingService(), // ← falla intencionadamente
-    ]);
-
-  return {
-    services: [
-      { name: "questions-service",       status: questionsResult.status,       data: ..., error: ... },
-      { name: "statistics-service",      status: statsResult.status,          data: ..., error: ... },
-      { name: "recommendations-service", status: recommendationsResult.status, data: ..., error: ... },
-      { name: "difficulty-service",      status: difficultyResult.status,     data: ..., error: ... },
-    ],
-  };
-}
+const [a, b, c] = await Promise.allSettled([callApiA(), callApiB(), callApiC()]);
+// aunque callApiB() rechace, a y c siguen disponibles
 ```
-
-El servicio de dificultad falla intencionadamente, pero el endpoint devuelve los resultados de los otros tres servicios más el error del cuarto. Si se usara `Promise.all`, el endpoint entero fallaría y no se devolvería nada.
-
-**Endpoint**: `GET /api/dashboard/external`
 
 ### Resumen: Promise.all vs Promise.allSettled
 
@@ -421,6 +375,8 @@ El servicio de dificultad falla intencionadamente, pero el endpoint devuelve los
 | Falla si **una** promesa falla | Nunca falla |
 | Devuelve un array de valores | Devuelve array de `{ status, value/reason }` |
 | Útil cuando necesitas **todo** | Útil cuando quieres **resultados parciales** |
+
+Este proyecto tenía antes un endpoint de demo (`/api/dashboard/external`) que solo existía para ilustrar `Promise.allSettled` contra servicios simulados — se quitó por no aportar nada a la práctica de entrevistas. El concepto se sigue practicando vía la pregunta *"Cuándo usar Promise.allSettled"* en la categoría Async de `/simulation`.
 
 ---
 
@@ -447,15 +403,15 @@ Devuelve **todas** las filas de la tabla izquierda, y las coincidencias de la de
 
 ```sql
 -- Usuarios que NO han realizado ninguna entrevista
-SELECT u.id, u.name, u.email
+SELECT u.id, u.name
 FROM users u
 LEFT JOIN interviews i ON i.user_id = u.id
 WHERE i.id IS NULL;
 ```
 
-Carol Davis aparece en los resultados porque no tiene entrevistas. Con INNER JOIN no aparecería — no hay coincidencia en `interviews`.
+Un usuario recién registrado aparece en los resultados porque todavía no tiene entrevistas. Con INNER JOIN no aparecería — no hay coincidencia en `interviews`.
 
-**Dónde se usa**: `backend/src/repositories/statisticsRepository.ts` — `getUsersWithoutInterviews()`
+**Dónde se usa**: `backend/src/repositories/statisticsRepository.ts` — `getUsersWithoutInterviews()`; también en el desglose por categoría, con `LEFT JOIN` desde `interview_questions`/`answers` filtrado por `user_id`, para que una categoría sin respuestas del usuario siga apareciendo con 0 correctas/incorrectas en vez de desaparecer de la lista.
 
 ### Resumen
 
@@ -481,25 +437,26 @@ WHERE q.difficulty IS NOT NULL   -- filtra preguntas antes de agrupar
 Filtra **grupos** **después** de `GROUP BY`. Puede usar funciones de agregación (`COUNT`, `SUM`, etc.).
 
 ```sql
-HAVING COUNT(q.id) >= $1   -- filtra categorías con >= N preguntas
+HAVING COUNT(DISTINCT q.id) >= $1   -- filtra categorías con >= N preguntas
 ```
 
-### Consulta completa
+### Consulta real (simplificada)
 
-En `backend/src/repositories/statisticsRepository.ts`:
+En `backend/src/repositories/statisticsRepository.ts` — desglose por categoría, ya scoped al usuario logueado:
 
 ```sql
 SELECT c.name AS category,
-       COUNT(q.id) AS question_count,
-       COUNT(a.id) FILTER (WHERE a.is_correct = true)  AS correct_count,
-       COUNT(a.id) FILTER (WHERE a.is_correct = false) AS incorrect_count
+       COUNT(DISTINCT q.id) AS question_count,
+       COUNT(DISTINCT a.id) FILTER (WHERE a.is_correct = true)  AS correct_count,
+       COUNT(DISTINCT a.id) FILTER (WHERE a.is_correct = false) AS incorrect_count
 FROM categories c
-INNER JOIN questions q          ON q.category_id = c.id
-LEFT  JOIN interview_questions iq ON iq.question_id = q.id
-LEFT  JOIN answers a            ON a.interview_question_id = iq.id
+INNER JOIN questions q  ON q.category_id = c.id
+LEFT JOIN interview_questions iq ON iq.question_id = q.id
+LEFT JOIN interviews i  ON i.id = iq.interview_id AND i.user_id = $2
+LEFT JOIN answers a     ON a.interview_question_id = iq.id AND i.id IS NOT NULL
 WHERE q.difficulty IS NOT NULL        -- ← WHERE: filtra filas antes de GROUP BY
 GROUP BY c.name
-HAVING COUNT(q.id) >= $1              -- ← HAVING: filtra grupos después de GROUP BY
+HAVING COUNT(DISTINCT q.id) >= $1     -- ← HAVING: filtra grupos después de GROUP BY
 ORDER BY question_count DESC
 ```
 
@@ -521,15 +478,15 @@ FROM → JOIN → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
 El schema incluye índices para acelerar las consultas más frecuentes:
 
 ```sql
-CREATE INDEX idx_interviews_user_id    ON interviews(user_id);
-CREATE INDEX idx_questions_category_id ON questions(category_id);
-CREATE INDEX idx_questions_difficulty  ON questions(difficulty);
+CREATE INDEX idx_interviews_user_id      ON interviews(user_id);
+CREATE INDEX idx_questions_category_id   ON questions(category_id);
+CREATE INDEX idx_questions_difficulty    ON questions(difficulty);
 CREATE INDEX idx_interview_questions_int ON interview_questions(interview_id);
 CREATE INDEX idx_interview_questions_q   ON interview_questions(question_id);
-CREATE INDEX idx_answers_iq_id          ON answers(interview_question_id);
+CREATE INDEX idx_answers_iq_id           ON answers(interview_question_id);
 ```
 
-Los índices en claves foráneas aceleran los JOINs. El índice en `difficulty` acelera el filtro `WHERE difficulty = 'hard'`.
+Los índices en claves foráneas aceleran los JOINs. El índice en `difficulty` acelera el filtro `WHERE difficulty = 'hard'`. `answers.interview_question_id` es además `UNIQUE` — lo necesita el `INSERT ... ON CONFLICT` que hace upsert de cada respuesta.
 
 ---
 
@@ -544,11 +501,13 @@ Los índices en claves foráneas aceleran los JOINs. El índice en `difficulty` 
 
 ### docker-compose.yml
 
-El proyecto define 3 servicios:
+El proyecto define 3 servicios para desarrollo local:
 
 - **postgres**: base de datos PostgreSQL 16. Monta `database/init.sql` como script de inicialización.
 - **backend**: Node.js/Express. Se construye desde `backend/Dockerfile`. Depende de postgres (healthcheck).
 - **frontend**: Vite dev server. Se construye desde `frontend/Dockerfile`. Depende de backend.
+
+(En producción no se usa Docker — Vercel construye el backend como función serverless y sirve el frontend estático directamente.)
 
 ### Comandos
 
@@ -629,22 +588,24 @@ docker exec interviewlab-backend ping -c 3 postgres
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
+| POST | `/api/auth/register` | Crear cuenta |
+| POST | `/api/auth/login` | Iniciar sesión (devuelve JWT) |
+| GET | `/api/auth/me` | Usuario autenticado actual |
 | GET | `/api/questions` | Listar preguntas (filtros: `?category=`, `?difficulty=`, `?search=`) |
 | GET | `/api/questions/:id` | Obtener una pregunta |
 | POST | `/api/questions` | Crear pregunta |
 | PUT | `/api/questions/:id` | Actualizar pregunta |
 | DELETE | `/api/questions/:id` | Eliminar pregunta |
 | GET | `/api/categories` | Listar categorías |
-| GET | `/api/interviews` | Listar entrevistas |
+| GET | `/api/interviews` | Listar **tus** entrevistas (requiere sesión) |
 | GET | `/api/interviews/:id` | Detalle de entrevista con preguntas |
 | POST | `/api/interviews` | Crear entrevista |
 | POST | `/api/interviews/:id/questions` | Añadir pregunta a entrevista |
 | DELETE | `/api/interviews/:id/questions/:questionId` | Quitar pregunta de entrevista |
-| PUT | `/api/interviews/:id/questions/:questionId/answer` | Marcar correcto/incorrecto |
-| GET | `/api/statistics` | Estadísticas (GROUP BY, HAVING, JOINs) |
-| GET | `/api/dashboard` | Dashboard (Promise.all) |
-| GET | `/api/dashboard/external` | Dashboard externo (Promise.allSettled) |
-| GET | `/api/system/async-demo` | Demo del Event Loop |
+| PUT | `/api/interviews/:id/questions/:questionId/answer` | Guardar correcto/incorrecto + la opción elegida |
+| PUT | `/api/interviews/:id/status` | Cambiar estado (`scheduled` / `in_progress` / `completed`) |
+| GET | `/api/statistics` | Tus estadísticas (GROUP BY, HAVING, JOINs, requiere sesión) |
+| GET | `/api/dashboard` | Panel (Promise.all, requiere sesión) |
 
 ---
 
@@ -657,9 +618,7 @@ cd backend
 npm test
 ```
 
-Testea:
-- `sortBy` — función genérica con `keyof` (5 tests)
-- `systemService` — simulación asíncrona, Promise.allSettled (4 tests)
+Testea `sortBy` — función genérica con `keyof` (5 tests).
 
 ### Frontend
 
@@ -668,8 +627,7 @@ cd frontend
 npm test
 ```
 
-Testea:
-- `sortBy` — función genérica con `keyof` (6 tests)
+Testea `sortBy` — función genérica con `keyof` (6 tests).
 
 ---
 
@@ -723,6 +681,9 @@ La librería C que implementa el Event Loop y el thread pool en Node.js.
 **¿Node.js es single-thread?**
 El código JS se ejecuta en un solo hilo, pero las operaciones I/O se delegan al SO o al thread pool de libuv (4 threads por defecto). Decir "single-thread" es una simplificación.
 
+**¿Por qué un `.then()` corre antes que un `setTimeout(fn, 0)`?**
+Los callbacks de Promise son microtasks; el Event Loop las vacía todas antes de procesar la siguiente macrotask (como un timer).
+
 ### Promises
 
 **¿Cuándo usar `Promise.all`?**
@@ -767,27 +728,10 @@ Ejecuta un comando dentro de un container en ejecución. Se usa para debugging �
 
 ---
 
-## Los 10 conceptos y dónde se utilizan
-
-| # | Concepto | Archivo(s) |
-|---|----------|-----------|
-| 1 | `keyof` vs `typeof` | `src/utils/sortBy.ts` (keyof), `src/types/index.ts` (typeof), `backend/src/utils/sortBy.ts`, `backend/src/types/index.ts` |
-| 2 | `useMemo` | `src/pages/StatisticsPage.tsx`, `src/pages/QuestionsPage.tsx` |
-| 3 | `useCallback` | `src/pages/QuestionsPage.tsx`, `src/pages/InterviewDetailPage.tsx`, `src/components/QuestionList.tsx` |
-| 4 | `setState(prev => ...)` | `src/pages/SimulationPage.tsx` |
-| 5 | Event Loop | `backend/src/services/systemService.ts`, `backend/src/controllers/systemController.ts` |
-| 6 | `Promise.all` | `backend/src/services/systemService.ts` (`getDashboardData`), `backend/src/controllers/statisticsController.ts` |
-| 7 | `Promise.allSettled` | `backend/src/services/systemService.ts` (`getExternalDashboardData`) |
-| 8 | INNER JOIN vs LEFT JOIN | `backend/src/repositories/interviewRepository.ts`, `backend/src/repositories/statisticsRepository.ts` |
-| 9 | WHERE vs HAVING | `backend/src/repositories/statisticsRepository.ts` |
-| 10 | `docker exec` | `docker-compose.yml` + sección Docker arriba |
-
----
-
-## Cómo arrancar
+## Cómo arrancar en local
 
 ```bash
-# 1. Clonar o situarse en el directorio del proyecto
+# 1. Situarse en el directorio del proyecto
 cd interviewlab
 
 # 2. Arrancar todos los servicios
@@ -795,46 +739,37 @@ docker compose up -d
 
 # 3. Verificar que están corriendo
 docker ps
-
-# 4. El frontend estará disponible en:
-#    http://localhost:5173
-
-# 5. La API en:
-#    http://localhost:4000/api
 ```
 
-### URLs
+### URLs en local
 
 | Servicio | URL |
 |----------|-----|
 | Frontend | http://localhost:5173 |
 | Backend API | http://localhost:4000/api |
 | Health check | http://localhost:4000/api/health |
-| Dashboard | http://localhost:4000/api/dashboard |
-| Dashboard externo (allSettled) | http://localhost:4000/api/dashboard/external |
-| Async demo | http://localhost:4000/api/system/async-demo |
-| Estadísticas | http://localhost:4000/api/statistics |
 
 ### Páginas del frontend
 
-| Página | URL |
-|--------|-----|
-| Dashboard | http://localhost:5173/dashboard |
-| Questions | http://localhost:5173/questions |
-| Interviews | http://localhost:5173/interviews |
-| Statistics | http://localhost:5173/statistics |
-| Simulation | http://localhost:5173/simulation |
-| Async Demo | http://localhost:5173/async-demo |
+| Página | Ruta | Requiere sesión |
+|--------|------|:---:|
+| Panel | `/dashboard` | Sí |
+| Preguntas | `/questions` | No |
+| Entrevistas | `/interviews` | Sí |
+| Estadísticas | `/statistics` | Sí |
+| Simulación | `/simulation` | No (pero solo guarda el resultado si has iniciado sesión) |
+| Iniciar sesión | `/login` | — |
 
 ---
 
 ## Seguridad y calidad
 
 - **SQL injection**: todas las consultas usan parámetros (`$1`, `$2`, ...). Nunca concatenación de strings.
+- **Auth**: JWT + bcrypt para el hash de contraseñas. Cada entrevista y respuesta queda ligada al `user_id` de quien la creó.
 - **CORS**: configurable via `CORS_ORIGIN` en variables de entorno.
 - **Validación de inputs**: `validateRequired()` en controllers.
-- **HTTP status codes**: 200, 201, 204, 400, 404, 500.
-- **Variables de entorno**: `DB_HOST`, `DB_PORT`, `CORS_ORIGIN`, etc. Sin secretos hardcodeados.
+- **HTTP status codes**: 200, 201, 204, 400, 401, 404, 500.
+- **Variables de entorno**: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, etc. Sin secretos hardcodeados.
 - **Separación de responsabilidades**: Route → Controller → Service → Repository.
 - **Sin ORM**: SQL real y legible en los repositories.
 - **TypeScript estricto**: `strict: true` en frontend y backend.
